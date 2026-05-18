@@ -7,7 +7,7 @@ import libreria_funciones as lf
 
 # Configuración premium de la página
 st.set_page_config(
-    page_title="Bot Analizador Salarial", 
+    page_title="Analizador Salarial", 
     page_icon="💼", 
     layout="wide",
     initial_sidebar_state="expanded"
