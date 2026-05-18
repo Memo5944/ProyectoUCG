@@ -169,19 +169,9 @@ if archivo_cargado is not None:
         st.sidebar.header("📈 3. Parámetros de Simulación")
         inflacion = st.sidebar.number_input("Inflación Anual Esperada (%)", min_value=0.0, max_value=100.0, value=3.0, step=0.1)
         
-        # Calcular incremento sugerido automáticamente
-        col_desempeno = next((c for c in df.columns if 'desempeño' in c or 'evaluacion' in c or 'rating' in c), None)
+        # Calcular incremento sugerido
         sugerencia = inflacion
-        if col_desempeno:
-            desempeno = datos_empleado.get(col_desempeno, 3)
-            if desempeno >= 4.5:
-                sugerencia += 4.0
-            elif desempeno >= 3.5:
-                sugerencia += 2.0
-            elif desempeno < 3:
-                sugerencia = max(0.0, sugerencia - 2.0)
-                
-        st.sidebar.markdown(f"💡 **El sistema sugiere un incremento de {sugerencia:.1f}%** basado en la inflación y el desempeño del empleado.")
+        st.sidebar.markdown(f"💡 **El sistema sugiere un incremento base de {sugerencia:.1f}%** alineado a la inflación esperada.")
         aumento_solicitado = st.sidebar.slider("Incremento a simular (%)", min_value=0.0, max_value=50.0, value=float(sugerencia), step=0.5)
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -269,7 +259,6 @@ if archivo_cargado is not None:
                 st.markdown("#### 📋 Cuadro Comparativo de Pares (Ranking Salarial)")
                 
                 cols_to_select = ['trabajador']
-                if col_desempeno: cols_to_select.append(col_desempeno)
                 if col_antiguedad: cols_to_select.append(col_antiguedad)
                 cols_to_select.append('salario_total')
                 
@@ -278,7 +267,6 @@ if archivo_cargado is not None:
                 df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = analisis['salario_propuesto']
                 
                 columnas_finales = ['Empleado']
-                if col_desempeno: columnas_finales.append('Desempeño')
                 if col_antiguedad: columnas_finales.append('Años')
                 columnas_finales.extend(['Salario Actual', 'Salario Nuevo'])
                 
@@ -409,56 +397,7 @@ if archivo_cargado is not None:
                     st.info("Añade la columna 'Departamento' en el archivo para ver este análisis.")
             
             with col_dash2:
-                col_genero = next((c for c in df.columns if 'genero' in c or 'género' in c or 'sexo' in c), None)
-                if col_genero:
-                    st.markdown("#### ⚖️ Equidad Salarial por Género (Brecha)")
-                    fig_gender = px.box(df, x=col_genero, y="salario_total", color=col_genero,
-                                        color_discrete_sequence=['#48BB78', '#EF4444'],
-                                        labels={"salario_total": "Salario Total (USD)", col_genero: "Género"})
-                    fig_gender.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=350, margin=dict(t=20, b=10, l=10, r=10))
-                    fig_gender.update_yaxes(gridcolor="rgba(255,255,255,0.1)")
-                    st.plotly_chart(fig_gender, use_container_width=True)
-                    st.markdown('<div class="chart-description"><b>Distribución Salarial de Género:</b> Permite contrastar la dispersión de ingresos entre hombres y mujeres para auditar que no existan brechas injustificadas de compensación.</div>', unsafe_allow_html=True)
-                else:
-                    st.info("Añade la columna 'Género' en el archivo para visualizar brechas.")
-            
-            col_desempeno = next((c for c in df.columns if 'desempeño' in c or 'evaluacion' in c or 'rating' in c), None)
-            if col_desempeno:
-                st.markdown("---")
-                st.markdown("#### 🎯 Matriz Estratégica: Desempeño vs. Posición Salarial (Compa-Ratio)")
-                
-                medianas_df = df.groupby('cargo')['salario_total'].median().reset_index()
-                medianas_df.rename(columns={'salario_total': 'mediana_cargo_global'}, inplace=True)
-                df_matrix = df.merge(medianas_df, on='cargo', how='left')
-                df_matrix['compa_ratio_global'] = df_matrix['salario_total'] / df_matrix['mediana_cargo_global']
-                
-                fig_matrix = px.scatter(
-                    df_matrix, x=col_desempeno, y="compa_ratio_global", color="cargo",
-                    hover_data=["trabajador", "salario_total"],
-                    labels={"compa_ratio_global": "Compa-Ratio (Salario / Mediana)", col_desempeno: "Desempeño (Calificación)"},
-                    title="Identificación Visual de Fuga de Talento e Ineficiencias"
-                )
-                
-                fig_matrix.add_hline(y=1.0, line_dash="dash", line_color="rgba(255,255,255,0.4)")
-                fig_matrix.add_vline(x=3.5, line_dash="dash", line_color="rgba(255,255,255,0.4)")
-                
-                fig_matrix.add_annotation(x=1.5, y=1.35, text="⚠️ Ineficiencia Salarial", showarrow=False, font=dict(color="#EF4444", size=14, weight="bold"))
-                fig_matrix.add_annotation(x=4.5, y=1.35, text="⭐ Estrella Clave", showarrow=False, font=dict(color="#10B981", size=14, weight="bold"))
-                fig_matrix.add_annotation(x=1.5, y=0.65, text="📈 En Desarrollo", showarrow=False, font=dict(color="#94A3B8", size=14, weight="bold"))
-                fig_matrix.add_annotation(x=4.5, y=0.65, text="🏃‍♂️ RIESGO DE FUGA", showarrow=False, font=dict(color="#F59E0B", size=14, weight="bold"))
-                
-                fig_matrix.update_layout(
-                    plot_bgcolor="rgba(0,0,0,0)", 
-                    paper_bgcolor="rgba(0,0,0,0)", 
-                    font_color="#E2E8F0", 
-                    height=500, 
-                    margin=dict(t=40, b=10, l=10, r=10)
-                )
-                fig_matrix.update_xaxes(gridcolor="rgba(255,255,255,0.1)")
-                fig_matrix.update_yaxes(gridcolor="rgba(255,255,255,0.1)")
-                st.plotly_chart(fig_matrix, use_container_width=True)
-                
-                st.markdown('<div class="chart-description"><b>Matriz de Posición vs Desempeño:</b> Cruza el mérito con la compensación. Destaca de inmediato a las personas con alto desempeño y bajo sueldo para planes de retención urgentes.</div>', unsafe_allow_html=True)
+                st.info("Espacio reservado para futuros análisis organizacionales.")
 
     except Exception as e:
         st.error(f"Ocurrió un error al procesar el archivo: {e}")
@@ -471,8 +410,6 @@ else:
         "Trabajador": ["Juan Perez", "Maria Gomez", "Carlos Diaz"],
         "Cargo": ["Analista Financiero", "Analista Financiero", "Gerente"],
         "Departamento": ["Finanzas", "Finanzas", "Finanzas"],
-        "Género": ["M", "F", "M"],
-        "Desempeño": [4, 5, 3],
         "Antigüedad": ["15/05/2021", "10/01/2019", "01/08/2013"],
         "Edad": [28, 32, 45],
         "Salario Base": [1200, 1400, 3000],
