@@ -11,12 +11,16 @@ def preparar_datos(df):
     # Calcular salario total si no existe
     col_salario = next((c for c in df.columns if 'base' in c or 'salario' in c), None)
     if col_salario:
-        df['salario_total'] = df[col_salario].fillna(0)
+        df['salario_base_limpio'] = pd.to_numeric(df[col_salario], errors='coerce').fillna(0)
+        df['salario_total'] = df['salario_base_limpio'].copy()
+        df['total_horas_extras'] = 0.0
         
         # Sumar TODAS las horas extras (HE 25, 50, 100, etc.)
         he_cols = [c for c in df.columns if 'he' in c or 'hora' in c or 'extra' in c]
         for col in he_cols:
-            df['salario_total'] += pd.to_numeric(df[col], errors='coerce').fillna(0)
+            val_he = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            df['total_horas_extras'] += val_he
+            df['salario_total'] += val_he
             
     # Convertir antigüedad a años si viene como fecha (dd/mm/aaaa) o datetime
     col_antiguedad = next((c for c in df.columns if 'antig' in c or 'año' in c or 'year' in c), None)

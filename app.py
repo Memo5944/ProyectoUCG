@@ -325,24 +325,35 @@ if archivo_cargado is not None:
             
             # Moviendo el cuadro comparativo a ancho completo para no romper la alineación
             st.markdown("---")
-            st.markdown("#### 📋 Cuadro Comparativo de Pares (Ranking Salarial)")
+            st.markdown("#### 📋 Cuadro Comparativo Detallado de Pares (Ranking y Simulación)")
             
             cols_to_select = ['trabajador']
             if col_antiguedad: cols_to_select.append(col_antiguedad)
+            
+            # Agregamos base y horas extras para mostrar que se consideran
+            has_base = 'salario_base_limpio' in df_pares.columns
+            if has_base: cols_to_select.extend(['salario_base_limpio', 'total_horas_extras'])
+            
             cols_to_select.append('salario_total')
             
             df_comparativo = df_pares[cols_to_select].copy()
             df_comparativo['Salario Nuevo'] = df_comparativo['salario_total'].astype(float)
             df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = float(analisis['salario_propuesto'])
             
+            # Nuevas métricas
+            df_comparativo['Diferencia ($)'] = df_comparativo['Salario Nuevo'] - df_comparativo['salario_total']
+            df_comparativo['Crecimiento (%)'] = np.where(df_comparativo['salario_total'] > 0, (df_comparativo['Diferencia ($)'] / df_comparativo['salario_total']) * 100, 0)
+            
             columnas_finales = ['Empleado']
             if col_antiguedad: columnas_finales.append('Años')
-            columnas_finales.extend(['Salario Actual', 'Salario Nuevo'])
+            if has_base: columnas_finales.extend(['Salario Base', 'Horas Extras Fijas'])
+            columnas_finales.extend(['Salario Actual', 'Salario Nuevo', 'Diferencia ($)', 'Crecimiento (%)'])
             
             df_comparativo.columns = columnas_finales
             
+            # Formateamos Años a 2 decimales si existe
             if 'Años' in df_comparativo.columns:
-                df_comparativo['Años'] = df_comparativo['Años'].round(1)
+                df_comparativo['Años'] = df_comparativo['Años'].round(2)
                 
             df_comparativo = df_comparativo.sort_values('Salario Nuevo', ascending=False).reset_index(drop=True)
             
@@ -351,10 +362,18 @@ if archivo_cargado is not None:
                     return ['background-color: rgba(239, 68, 68, 0.2); color: white; font-weight: bold'] * len(row)
                 return [''] * len(row)
                 
-            st.dataframe(df_comparativo.style.apply(highlight_selected, axis=1).format({
+            formato_columnas = {
                 'Salario Actual': '${:,.2f}',
-                'Salario Nuevo': '${:,.2f}'
-            }), use_container_width=True)
+                'Salario Nuevo': '${:,.2f}',
+                'Diferencia ($)': '${:,.2f}',
+                'Crecimiento (%)': '{:,.2f}%',
+                'Años': '{:.2f}'
+            }
+            if has_base:
+                formato_columnas['Salario Base'] = '${:,.2f}'
+                formato_columnas['Horas Extras Fijas'] = '${:,.2f}'
+                
+            st.dataframe(df_comparativo.style.apply(highlight_selected, axis=1).format(formato_columnas), use_container_width=True)
             
             st.markdown("#### 🤖 Diagnóstico Salarial Estratégico")
             col_diag1, col_diag2 = st.columns(2)
