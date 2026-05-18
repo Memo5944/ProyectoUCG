@@ -262,7 +262,7 @@ if archivo_cargado is not None:
                 st.markdown(f'<div class="chart-description">{texto_analisis_bar}</div>', unsafe_allow_html=True)
 
             with col_graf2:
-                st.markdown("#### 📈 Antigüedad vs Salario con Línea de Tendencia")
+                st.markdown("inicio")
                 if col_antiguedad:
                     # Scatter simplificado sin barra de color para evitar solapamientos
                     fig_scatter = px.scatter(df_pares, x=col_antiguedad, y="salario_total", text="trabajador",
