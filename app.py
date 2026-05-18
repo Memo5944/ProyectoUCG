@@ -265,6 +265,32 @@ if archivo_cargado is not None:
                 
                 st.markdown('<div class="chart-description"><b>Comparativa de Salarios:</b> Muestra lo que ganan todos los empleados en el mismo cargo. La barra roja eres tú. La línea punteada marca adónde llegará tu sueldo con el aumento.</div>', unsafe_allow_html=True)
 
+                # Cuadro Comparativo (Ranking)
+                st.markdown("#### 📋 Cuadro Comparativo de Pares (Ranking Salarial)")
+                
+                df_comparativo = df_pares[['trabajador', 'desempeño', col_antiguedad, 'salario_total']].copy() if col_antiguedad else df_pares[['trabajador', 'desempeño', 'salario_total']].copy()
+                df_comparativo['Salario Nuevo'] = df_comparativo['salario_total']
+                df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = analisis['salario_propuesto']
+                
+                columnas_finales = ['Empleado', 'Desempeño', 'Años', 'Salario Actual', 'Salario Nuevo'] if col_antiguedad else ['Empleado', 'Desempeño', 'Salario Actual', 'Salario Nuevo']
+                df_comparativo.columns = columnas_finales
+                
+                if 'Años' in df_comparativo.columns:
+                    df_comparativo['Años'] = df_comparativo['Años'].round(1)
+                    
+                df_comparativo = df_comparativo.sort_values('Salario Nuevo', ascending=False).reset_index(drop=True)
+                
+                def highlight_selected(row):
+                    if row['Empleado'] == trabajador_seleccionado:
+                        return ['background-color: rgba(239, 68, 68, 0.2); color: white; font-weight: bold'] * len(row)
+                    return [''] * len(row)
+                    
+                st.dataframe(df_comparativo.style.apply(highlight_selected, axis=1).format({
+                    'Salario Actual': '${:,.2f}',
+                    'Salario Nuevo': '${:,.2f}'
+                }), use_container_width=True)
+                st.markdown('<div class="chart-description"><b>Ranking Post-Aumento:</b> Simula la nueva jerarquía salarial dentro de tu cargo. Permite validar que tu nuevo sueldo sea justo frente a colegas con mayor desempeño o experiencia.</div>', unsafe_allow_html=True)
+
             with col_graf2:
                 st.markdown("#### 📈 Antigüedad vs Salario con Línea de Tendencia")
                 col_antiguedad = next((c for c in df.columns if 'antig' in c or 'año' in c or 'year' in c), None)
@@ -438,10 +464,11 @@ else:
         "Departamento": ["Finanzas", "Finanzas", "Finanzas"],
         "Género": ["M", "F", "M"],
         "Desempeño": [4, 5, 3],
-        "Antigüedad": [2, 5, 10],
+        "Antigüedad": ["15/05/2021", "10/01/2019", "01/08/2013"],
         "Edad": [28, 32, 45],
         "Salario Base": [1200, 1400, 3000],
         "HE 25%": [50, 0, 0],
-        "HE 50%": [0, 100, 0]
+        "HE 50%": [0, 100, 0],
+        "HE 100%": [0, 0, 150]
     })
     st.dataframe(ejemplo)
