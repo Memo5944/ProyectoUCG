@@ -299,32 +299,37 @@ if archivo_cargado is not None:
                                              labels={col_antiguedad: "Antigüedad (Años)", "salario_total": "Salario Total (USD)"})
                     fig_scatter.update_traces(marker=dict(color='#00D2D3', opacity=0.7), textposition='top center')
                     
-                    x_vals = df_pares[col_antiguedad].values
-                    y_vals = df_pares['salario_total'].values
-                    if len(x_vals) > 1:
-                        m, c = np.polyfit(x_vals, y_vals, 1)
-                        x_line = np.linspace(x_vals.min(), x_vals.max(), 100)
-                        y_line = m * x_line + c
-                        
-                        fig_scatter.add_trace(go.Scatter(
-                            x=x_line, y=y_line, mode='lines',
-                            line=dict(color='rgba(255, 255, 255, 0.6)', dash='dash'),
-                            name='Tendencia Esperada'
-                        ))
-                        
-                        fig_scatter.add_trace(go.Scatter(
-                            x=np.concatenate([x_line, x_line[::-1]]),
-                            y=np.concatenate([y_line * 1.15, (y_line * 0.85)[::-1]]),
-                            fill='toself',
-                            fillcolor='rgba(0, 210, 211, 0.1)',
-                            line=dict(color='rgba(255,255,255,0)'),
-                            hoverinfo="skip",
-                            name="Tolerancia (±15%)"
-                        ))
+                    x_vals = df_pares[col_antiguedad].fillna(0).values
+                    y_vals = df_pares['salario_total'].fillna(0).values
+                    
+                    # Solo intentar hacer la línea de tendencia si hay al menos 2 puntos con X (antigüedad) distinto
+                    if len(x_vals) > 1 and len(set(x_vals)) > 1:
+                        try:
+                            m, c = np.polyfit(x_vals, y_vals, 1)
+                            x_line = np.linspace(x_vals.min(), x_vals.max(), 100)
+                            y_line = m * x_line + c
+                            
+                            fig_scatter.add_trace(go.Scatter(
+                                x=x_line, y=y_line, mode='lines',
+                                line=dict(color='rgba(255, 255, 255, 0.6)', dash='dash'),
+                                name='Tendencia Esperada'
+                            ))
+                            
+                            fig_scatter.add_trace(go.Scatter(
+                                x=np.concatenate([x_line, x_line[::-1]]),
+                                y=np.concatenate([y_line * 1.15, (y_line * 0.85)[::-1]]),
+                                fill='toself',
+                                fillcolor='rgba(0, 210, 211, 0.1)',
+                                line=dict(color='rgba(255,255,255,0)'),
+                                hoverinfo="skip",
+                                name="Tolerancia (±15%)"
+                            ))
+                        except Exception:
+                            pass # Ignorar si la matemática de la tendencia falla
                     
                     # Resaltar evaluado (texto explícito y claro)
                     fig_scatter.add_trace(go.Scatter(
-                        x=[datos_empleado[col_antiguedad]], y=[salario_actual], mode='markers+text',
+                        x=[datos_empleado.get(col_antiguedad, 0)], y=[salario_actual], mode='markers+text',
                         marker=dict(color='#EF4444', size=22, symbol='star', line=dict(color='white', width=2)),
                         text=[f"Eval: {trabajador_seleccionado}"], textposition="bottom center", name="Evaluado",
                         textfont=dict(color="#EF4444", size=12, weight="bold")
