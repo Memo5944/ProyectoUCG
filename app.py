@@ -203,6 +203,8 @@ if archivo_cargado is not None:
 
             st.markdown("---")
             
+            col_antiguedad = next((c for c in df.columns if 'antig' in c or 'año' in c or 'year' in c), None)
+            
             col_graf1, col_graf2 = st.columns(2)
             
             with col_graf1:
@@ -290,7 +292,6 @@ if archivo_cargado is not None:
 
             with col_graf2:
                 st.markdown("#### 📈 Antigüedad vs Salario con Línea de Tendencia")
-                col_antiguedad = next((c for c in df.columns if 'antig' in c or 'año' in c or 'year' in c), None)
                 if col_antiguedad:
                     # Scatter simplificado sin barra de color para evitar solapamientos
                     fig_scatter = px.scatter(df_pares, x=col_antiguedad, y="salario_total", text="trabajador",
