@@ -18,20 +18,22 @@ def preparar_datos(df):
         for col in he_cols:
             df['salario_total'] += pd.to_numeric(df[col], errors='coerce').fillna(0)
             
-    # Convertir antigüedad a años si viene como fecha (dd/mm/aaaa)
+    # Convertir antigüedad a años si viene como fecha (dd/mm/aaaa) o datetime
     col_antiguedad = next((c for c in df.columns if 'antig' in c or 'año' in c or 'year' in c), None)
     if col_antiguedad:
-        if df[col_antiguedad].dtype == 'object':
+        if pd.api.types.is_datetime64_any_dtype(df[col_antiguedad]):
+            df[col_antiguedad] = (pd.Timestamp('today') - df[col_antiguedad]).dt.days / 365.25
+        elif df[col_antiguedad].dtype == 'object':
             try:
                 fechas = pd.to_datetime(df[col_antiguedad], format='%d/%m/%Y', errors='coerce')
                 # Si alguna fecha es válida, transformar la columna entera a años desde la fecha actual
                 if not fechas.isna().all():
-                    df[col_antiguedad] = (pd.to_datetime('today') - fechas).dt.days / 365.25
+                    df[col_antiguedad] = (pd.Timestamp('today') - fechas).dt.days / 365.25
             except Exception:
                 pass
             
-            # Asegurar numérico en caso de que viniera texto raro
-            df[col_antiguedad] = pd.to_numeric(df[col_antiguedad], errors='coerce').fillna(0)
+        # Asegurar numérico en caso de que viniera texto raro o si ya se convirtió a años
+        df[col_antiguedad] = pd.to_numeric(df[col_antiguedad], errors='coerce').fillna(0)
     
     return df
 

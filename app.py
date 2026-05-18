@@ -255,40 +255,11 @@ if archivo_cargado is not None:
                 fig_bar.update_yaxes(gridcolor="rgba(255,255,255,0.1)", range=[0, max(df_pares['salario_total'].max(), analisis['salario_propuesto']) * 1.25])
                 st.plotly_chart(fig_bar, use_container_width=True)
                 
-                st.markdown('<div class="chart-description"><b>Comparativa de Salarios:</b> Muestra lo que ganan todos los empleados en el mismo cargo. La barra roja eres tú. La línea punteada marca adónde llegará tu sueldo con el aumento.</div>', unsafe_allow_html=True)
-
-                # Cuadro Comparativo (Ranking)
-                st.markdown("#### 📋 Cuadro Comparativo de Pares (Ranking Salarial)")
-                
-                cols_to_select = ['trabajador']
-                if col_antiguedad: cols_to_select.append(col_antiguedad)
-                cols_to_select.append('salario_total')
-                
-                df_comparativo = df_pares[cols_to_select].copy()
-                df_comparativo['Salario Nuevo'] = df_comparativo['salario_total'].astype(float)
-                df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = float(analisis['salario_propuesto'])
-                
-                columnas_finales = ['Empleado']
-                if col_antiguedad: columnas_finales.append('Años')
-                columnas_finales.extend(['Salario Actual', 'Salario Nuevo'])
-                
-                df_comparativo.columns = columnas_finales
-                
-                if 'Años' in df_comparativo.columns:
-                    df_comparativo['Años'] = df_comparativo['Años'].round(1)
-                    
-                df_comparativo = df_comparativo.sort_values('Salario Nuevo', ascending=False).reset_index(drop=True)
-                
-                def highlight_selected(row):
-                    if row['Empleado'] == trabajador_seleccionado:
-                        return ['background-color: rgba(239, 68, 68, 0.2); color: white; font-weight: bold'] * len(row)
-                    return [''] * len(row)
-                    
-                st.dataframe(df_comparativo.style.apply(highlight_selected, axis=1).format({
-                    'Salario Actual': '${:,.2f}',
-                    'Salario Nuevo': '${:,.2f}'
-                }), use_container_width=True)
-                st.markdown('<div class="chart-description"><b>Ranking Post-Aumento:</b> Simula la nueva jerarquía salarial dentro de tu cargo. Permite validar que tu nuevo sueldo sea justo frente a colegas con mayor desempeño o experiencia.</div>', unsafe_allow_html=True)
+                # Análisis de texto dinámico
+                pos_actual = (salario_actual/mediana_cargo)*100 if mediana_cargo > 0 else 100
+                pos_nueva = (analisis['salario_propuesto']/mediana_cargo)*100 if mediana_cargo > 0 else 100
+                texto_analisis_bar = f"<b>Interpretación:</b> {trabajador_seleccionado} gana USD {salario_actual:,.0f} ({pos_actual:.1f}% de la mediana). El nuevo sueldo (USD {analisis['salario_propuesto']:,.0f}) ajustará su posición al {pos_nueva:.1f}% frente a sus colegas directos."
+                st.markdown(f'<div class="chart-description">{texto_analisis_bar}</div>', unsafe_allow_html=True)
 
             with col_graf2:
                 st.markdown("#### 📈 Antigüedad vs Salario con Línea de Tendencia")
@@ -347,9 +318,43 @@ if archivo_cargado is not None:
                     fig_scatter.update_yaxes(gridcolor="rgba(255,255,255,0.1)")
                     st.plotly_chart(fig_scatter, use_container_width=True)
                     
-                    st.markdown('<div class="chart-description"><b>Curva de Experiencia:</b> Mapea la relación entre antigüedad laboral y salario sin barra de color extra. La zona sombreada marca el rango aceptable. Puntos por fuera requieren atención.</div>', unsafe_allow_html=True)
+                    texto_analisis_scatter = f"<b>Interpretación:</b> Con {datos_empleado.get(col_antiguedad, 0):.1f} años de antigüedad, el sueldo busca respetar la curva de experiencia del equipo. Puntos muy por debajo de la zona sombreada alertan sobre un alto riesgo de rotación por falta de equidad."
+                    st.markdown(f'<div class="chart-description">{texto_analisis_scatter}</div>', unsafe_allow_html=True)
                 else:
                     st.warning("No se encontró columna de antigüedad para la tendencia.")
+            
+            # Moviendo el cuadro comparativo a ancho completo para no romper la alineación
+            st.markdown("---")
+            st.markdown("#### 📋 Cuadro Comparativo de Pares (Ranking Salarial)")
+            
+            cols_to_select = ['trabajador']
+            if col_antiguedad: cols_to_select.append(col_antiguedad)
+            cols_to_select.append('salario_total')
+            
+            df_comparativo = df_pares[cols_to_select].copy()
+            df_comparativo['Salario Nuevo'] = df_comparativo['salario_total'].astype(float)
+            df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = float(analisis['salario_propuesto'])
+            
+            columnas_finales = ['Empleado']
+            if col_antiguedad: columnas_finales.append('Años')
+            columnas_finales.extend(['Salario Actual', 'Salario Nuevo'])
+            
+            df_comparativo.columns = columnas_finales
+            
+            if 'Años' in df_comparativo.columns:
+                df_comparativo['Años'] = df_comparativo['Años'].round(1)
+                
+            df_comparativo = df_comparativo.sort_values('Salario Nuevo', ascending=False).reset_index(drop=True)
+            
+            def highlight_selected(row):
+                if row['Empleado'] == trabajador_seleccionado:
+                    return ['background-color: rgba(239, 68, 68, 0.2); color: white; font-weight: bold'] * len(row)
+                return [''] * len(row)
+                
+            st.dataframe(df_comparativo.style.apply(highlight_selected, axis=1).format({
+                'Salario Actual': '${:,.2f}',
+                'Salario Nuevo': '${:,.2f}'
+            }), use_container_width=True)
             
             st.markdown("#### 🤖 Diagnóstico Salarial Estratégico")
             col_diag1, col_diag2 = st.columns(2)
