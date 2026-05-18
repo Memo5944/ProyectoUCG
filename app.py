@@ -265,8 +265,8 @@ if archivo_cargado is not None:
                 cols_to_select.append('salario_total')
                 
                 df_comparativo = df_pares[cols_to_select].copy()
-                df_comparativo['Salario Nuevo'] = df_comparativo['salario_total']
-                df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = analisis['salario_propuesto']
+                df_comparativo['Salario Nuevo'] = df_comparativo['salario_total'].astype(float)
+                df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = float(analisis['salario_propuesto'])
                 
                 columnas_finales = ['Empleado']
                 if col_antiguedad: columnas_finales.append('Años')
