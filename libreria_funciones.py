@@ -54,3 +54,13 @@ def evaluar_incremento(salario_actual, porcentaje_incremento, porcentaje_inflaci
         'perdida_inflacion': perdida_por_inflacion,
         'aumento_real_monto': aumento_real
     }
+
+def calcular_compa_ratio(salario_total, mediana_cargo):
+    """
+    Calcula el Compa-Ratio de un empleado (Salario Total / Mediana del Cargo).
+    Un Compa-Ratio de 1.0 significa que está exactamente en la mediana del mercado interno.
+    """
+    if not mediana_cargo or mediana_cargo == 0:
+        return 1.0
+    return salario_total / mediana_cargo
+
