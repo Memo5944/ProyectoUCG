@@ -137,7 +137,7 @@ def render_kpi_card(title, value, delta=None, delta_type="positive", border_colo
     </div>
     """
 
-st.title("💼 Bot de Análisis Salarial")
+st.title("💼 Análisis Salarial")
 st.markdown("Evalúa incrementos salariales basándote en datos reales, equidad interna y posicionamiento corporativo.")
 
 # Sidebar - Carga de Datos
