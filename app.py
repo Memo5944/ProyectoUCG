@@ -165,9 +165,24 @@ if archivo_cargado is not None:
         cargo_empleado = datos_empleado['cargo']
         salario_actual = datos_empleado.get('salario_total', 0)
         
+        # Sidebar - Parámetros de Simulación
         st.sidebar.header("📈 3. Parámetros de Simulación")
         inflacion = st.sidebar.number_input("Inflación Anual Esperada (%)", min_value=0.0, max_value=100.0, value=3.0, step=0.1)
-        aumento_solicitado = st.sidebar.slider("Incremento a simular (%)", min_value=0.0, max_value=50.0, value=5.0, step=0.5)
+        
+        # Calcular incremento sugerido automáticamente
+        col_desempeno = next((c for c in df.columns if 'desempeño' in c or 'evaluacion' in c or 'rating' in c), None)
+        sugerencia = inflacion
+        if col_desempeno:
+            desempeno = datos_empleado.get(col_desempeno, 3)
+            if desempeno >= 4.5:
+                sugerencia += 4.0
+            elif desempeno >= 3.5:
+                sugerencia += 2.0
+            elif desempeno < 3:
+                sugerencia = max(0.0, sugerencia - 2.0)
+                
+        st.sidebar.markdown(f"💡 **El sistema sugiere un incremento de {sugerencia:.1f}%** basado en la inflación y el desempeño del empleado.")
+        aumento_solicitado = st.sidebar.slider("Incremento a simular (%)", min_value=0.0, max_value=50.0, value=float(sugerencia), step=0.5)
 
         st.markdown("<br>", unsafe_allow_html=True)
         tab1, tab2 = st.tabs(["👤 Análisis Individual (Simulador)", "🏢 Dashboard Global (Empresa)"])
@@ -229,18 +244,26 @@ if archivo_cargado is not None:
                 fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=240, margin=dict(t=30, b=10, l=20, r=20))
                 st.plotly_chart(fig_gauge, use_container_width=True)
                 
-                # Box Plot
-                df_pares = df[df['cargo'].str.lower() == cargo_empleado.lower()]
-                fig_box = px.box(df_pares, y="salario_total", points="all", hover_data=["trabajador"],
-                                 labels={"salario_total": "Salario Total (USD)"},
-                                 color_discrete_sequence=['#00D2D3'])
-                fig_box.add_hline(y=analisis['salario_propuesto'], line_dash="dash", line_color="#FF4B4B", annotation_text="Propuesto")
-                fig_box.add_hline(y=salario_actual, line_dash="solid", line_color="#F59E0B", annotation_text="Actual")
-                fig_box.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=240, margin=dict(t=20, b=20, l=20, r=20))
-                fig_box.update_yaxes(gridcolor="rgba(255,255,255,0.1)")
-                st.plotly_chart(fig_box, use_container_width=True)
+                # Gráfico de Barras Comparativo (Reemplazo del Box Plot)
+                df_pares = df[df['cargo'].str.lower() == cargo_empleado.lower()].sort_values('salario_total', ascending=False)
                 
-                st.markdown('<div class="chart-description"><b>Equidad Salarial:</b> Mide la competitividad del empleado frente a la mediana de su cargo. La zona verde indica equilibrio de mercado. La caja muestra el rango salarial de sus pares directos.</div>', unsafe_allow_html=True)
+                # Resaltar al evaluado con otro color
+                df_pares['Color'] = ['#FF4B4B' if t == trabajador_seleccionado else '#00D2D3' for t in df_pares['trabajador']]
+                
+                fig_bar = px.bar(df_pares, x="trabajador", y="salario_total", 
+                                 text="salario_total",
+                                 color="Color", color_discrete_map="identity",
+                                 labels={"trabajador": "Empleado", "salario_total": "Salario (USD)"})
+                
+                fig_bar.update_traces(texttemplate='USD %{text:,.0f}', textposition='outside')
+                fig_bar.add_hline(y=analisis['salario_propuesto'], line_dash="dash", line_color="#FF4B4B", annotation_text="Propuesto")
+                fig_bar.add_hline(y=mediana_cargo, line_dash="solid", line_color="#F59E0B", annotation_text="Mediana")
+                
+                fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=260, margin=dict(t=20, b=20, l=10, r=10))
+                fig_bar.update_yaxes(gridcolor="rgba(255,255,255,0.1)", range=[0, max(df_pares['salario_total'].max(), analisis['salario_propuesto']) * 1.25])
+                st.plotly_chart(fig_bar, use_container_width=True)
+                
+                st.markdown('<div class="chart-description"><b>Comparativa de Salarios:</b> Muestra lo que ganan todos los empleados en el mismo cargo. La barra roja eres tú. La línea punteada marca adónde llegará tu sueldo con el aumento.</div>', unsafe_allow_html=True)
 
             with col_graf2:
                 st.markdown("#### 📈 Antigüedad vs Salario con Línea de Tendencia")
@@ -287,7 +310,7 @@ if archivo_cargado is not None:
                         plot_bgcolor="rgba(0,0,0,0)", 
                         paper_bgcolor="rgba(0,0,0,0)", 
                         font_color="#E2E8F0", 
-                        height=480, 
+                        height=500, 
                         margin=dict(t=20, b=20, l=20, r=20),
                         legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0.5)")
                     )
