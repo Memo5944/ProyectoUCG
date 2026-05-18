@@ -268,11 +268,20 @@ if archivo_cargado is not None:
                 # Cuadro Comparativo (Ranking)
                 st.markdown("#### 📋 Cuadro Comparativo de Pares (Ranking Salarial)")
                 
-                df_comparativo = df_pares[['trabajador', 'desempeño', col_antiguedad, 'salario_total']].copy() if col_antiguedad else df_pares[['trabajador', 'desempeño', 'salario_total']].copy()
+                cols_to_select = ['trabajador']
+                if col_desempeno: cols_to_select.append(col_desempeno)
+                if col_antiguedad: cols_to_select.append(col_antiguedad)
+                cols_to_select.append('salario_total')
+                
+                df_comparativo = df_pares[cols_to_select].copy()
                 df_comparativo['Salario Nuevo'] = df_comparativo['salario_total']
                 df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = analisis['salario_propuesto']
                 
-                columnas_finales = ['Empleado', 'Desempeño', 'Años', 'Salario Actual', 'Salario Nuevo'] if col_antiguedad else ['Empleado', 'Desempeño', 'Salario Actual', 'Salario Nuevo']
+                columnas_finales = ['Empleado']
+                if col_desempeno: columnas_finales.append('Desempeño')
+                if col_antiguedad: columnas_finales.append('Años')
+                columnas_finales.extend(['Salario Actual', 'Salario Nuevo'])
+                
                 df_comparativo.columns = columnas_finales
                 
                 if 'Años' in df_comparativo.columns:
