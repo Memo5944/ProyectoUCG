@@ -67,7 +67,6 @@ def evaluar_incremento(salario_actual, porcentaje_incremento, porcentaje_inflaci
         'aumento_real_monto': aumento_real
     }
 
-<<<<<<< HEAD
 def obtener_metricas_cargos_multiples(df, cargos):
     """
     Obtiene métricas estadísticas (mediana, promedio, min, max) para una lista de cargos.
@@ -84,10 +83,8 @@ def obtener_metricas_cargos_multiples(df, cargos):
         'cantidad': len(df_cargos)
     }
     return metricas
-=======
+
 def calcular_compa_ratio(salario_total, mediana_cargo):
     if not mediana_cargo or mediana_cargo == 0:
         return 1.0
     return salario_total / mediana_cargo
-
->>>>>>> 21a3ae377b63db973802a9d5aad95522c7f289cc
