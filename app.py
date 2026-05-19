@@ -243,7 +243,7 @@ if archivo_cargado is not None:
                 st.markdown(f"**Cargo:** {cargo_empleado.title()} | **Antigüedad:** {antiguedad_str} años")
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                analisis = lf.evaluar_incremento(salario_actual, aumento_solicitado, inflacion)
+                analisis = lf.evaluar_incremento_detallado(datos_empleado, aumento_solicitado, inflacion)
                 
                 mediana_cargo = metricas_comparativa_global['mediana'] if metricas_comparativa_global else 0
                 compa_ratio_actual = lf.calcular_compa_ratio(salario_actual, mediana_cargo) if hasattr(lf, 'calcular_compa_ratio') else (salario_actual / mediana_cargo if mediana_cargo > 0 else 0)
@@ -260,6 +260,27 @@ if archivo_cargado is not None:
                 with c4:
                     val_mediana = f"USD {mediana_cargo:,.2f}" if mediana_cargo > 0 else "N/D"
                     st.markdown(render_kpi_card("Mediana Comparativa", val_mediana, border_color="#F59E0B"), unsafe_allow_html=True)
+
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                if 'df_desglose' in analisis:
+                    st.markdown("#### 🧩 Estructura Salarial Propuesta (Desglose)")
+                    st.caption("Muestra cómo el incremento en el Salario Base impacta proporcionalmente el valor de las Horas Extras (HE).")
+                    
+                    df_desglose = analisis['df_desglose']
+                    
+                    def highlight_total(row):
+                        if row['Rubro'] == 'TOTAL':
+                            return ['background-color: rgba(0, 210, 211, 0.2); font-weight: bold; color: white'] * len(row)
+                        return [''] * len(row)
+                        
+                    formato_desglose = {
+                        'Actual': '${:,.2f}',
+                        'Propuesto': '${:,.2f}',
+                        'Diferencia': '+${:,.2f}'
+                    }
+                    
+                    st.dataframe(df_desglose.style.apply(highlight_total, axis=1).format(formato_desglose), use_container_width=True)
 
                 st.markdown("---")
                 

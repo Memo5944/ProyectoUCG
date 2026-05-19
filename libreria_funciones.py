@@ -67,6 +67,66 @@ def evaluar_incremento(salario_actual, porcentaje_incremento, porcentaje_inflaci
         'aumento_real_monto': aumento_real
     }
 
+def evaluar_incremento_detallado(datos_empleado, porcentaje_incremento, porcentaje_inflacion):
+    salario_total_actual = float(datos_empleado.get('salario_total', 0))
+    salario_base_actual = float(datos_empleado.get('salario_base_limpio', salario_total_actual))
+    
+    # Extraer horas extras si existen
+    he_cols = [c for c in datos_empleado.index if 'he ' in str(c).lower() or 'hora' in str(c).lower() or 'extra' in str(c).lower()]
+    # Remover la columna totalizadora para evitar doble conteo
+    he_cols = [c for c in he_cols if c != 'total_horas_extras']
+    
+    factor_incremento = 1 + (porcentaje_incremento / 100)
+    
+    desglose = []
+    
+    # Base
+    base_propuesto = salario_base_actual * factor_incremento
+    desglose.append({
+        'Rubro': 'Salario Base',
+        'Actual': salario_base_actual,
+        'Propuesto': base_propuesto,
+        'Diferencia': base_propuesto - salario_base_actual
+    })
+    
+    # Horas Extras Individuales
+    for col in he_cols:
+        try:
+            val_actual = float(datos_empleado.get(col, 0))
+            if val_actual > 0:
+                val_propuesto = val_actual * factor_incremento
+                desglose.append({
+                    'Rubro': str(col).upper(),
+                    'Actual': val_actual,
+                    'Propuesto': val_propuesto,
+                    'Diferencia': val_propuesto - val_actual
+                })
+        except Exception:
+            pass
+            
+    # Totales
+    salario_propuesto = salario_total_actual * factor_incremento
+    desglose.append({
+        'Rubro': 'TOTAL',
+        'Actual': salario_total_actual,
+        'Propuesto': salario_propuesto,
+        'Diferencia': salario_propuesto - salario_total_actual
+    })
+    
+    df_desglose = pd.DataFrame(desglose)
+    
+    perdida_por_inflacion = salario_total_actual * (porcentaje_inflacion / 100)
+    salario_real_actual = salario_total_actual - perdida_por_inflacion
+    aumento_real = salario_propuesto - salario_total_actual
+    
+    return {
+        'salario_propuesto': salario_propuesto,
+        'salario_real_actual': salario_real_actual,
+        'perdida_inflacion': perdida_por_inflacion,
+        'aumento_real_monto': aumento_real,
+        'df_desglose': df_desglose
+    }
+
 def obtener_metricas_cargos_multiples(df, cargos):
     """
     Obtiene métricas estadísticas (mediana, promedio, min, max) para una lista de cargos.
