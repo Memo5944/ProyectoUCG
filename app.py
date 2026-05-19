@@ -214,14 +214,9 @@ if archivo_cargado is not None:
         
         st.sidebar.markdown("---")
         st.sidebar.header("🌍 5. Benchmark de Mercado Externo")
-        st.sidebar.caption("Investiga y compara el sueldo con el mercado laboral externo.")
+        st.sidebar.caption("Estimación automática del mercado laboral externo para fines comparativos.")
         
         cargo_para_busqueda = str(datos_empleado.get('cargo', '')).strip()
-        query_cargo = cargo_para_busqueda.replace(' ', '+')
-        
-        # Enlaces de investigación
-        st.sidebar.markdown(f"🔍 [Buscar salario de **{cargo_para_busqueda.title()}** en Glassdoor](https://www.glassdoor.com/Salaries/index.htm)")
-        st.sidebar.markdown(f"🌐 [Investigar promedio en Google](https://www.google.com/search?q=salario+promedio+{query_cargo}+mercado)")
         
         estimacion_inicial, fuente_estimacion = lf.estimar_mercado_externo(cargo_para_busqueda, mediana_global)
         
