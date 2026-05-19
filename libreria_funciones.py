@@ -99,14 +99,24 @@ def estimar_mercado_externo(cargo, mediana_interna):
     
     # Base de datos simulada de sueldos de mercado (USD)
     mercado_referencia = {
-        'analista financiero': 1600.0,
+        'director': 5000.0,
         'gerente': 3500.0,
+        'jefe': 2500.0,
+        'coordinador': 2000.0,
+        'supervisor': 1800.0,
+        'consultor': 2200.0,
+        'especialista': 2000.0,
+        'ingeniero': 2100.0,
         'desarrollador': 2500.0,
+        'analista': 1500.0,
+        'auditor': 1600.0,
         'contador': 1400.0,
         'recursos humanos': 1500.0,
-        'director': 5000.0,
+        'tecnico': 1100.0,
+        'operador': 900.0,
+        'vendedor': 1000.0,
         'asistente': 800.0,
-        'vendedor': 1200.0
+        'auxiliar': 700.0
     }
     
     for key, val in mercado_referencia.items():
