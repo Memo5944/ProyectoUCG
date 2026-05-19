@@ -247,135 +247,167 @@ if archivo_cargado is not None:
                 
                 col_antiguedad = next((c for c in df.columns if 'antig' in c or 'año' in c or 'year' in c), None)
                 
-                col_graf1, col_graf2 = st.columns(2)
-                
-                with col_graf1:
-                    st.markdown("#### 📊 Equidad Interna y Compa-Ratio")
-                    # Velocímetro
-                    fig_gauge = go.Figure(go.Indicator(
-                        mode = "gauge+number",
-                        value = compa_ratio_actual,
-                        domain = {'x': [0, 1], 'y': [0, 1]},
-                        title = {'text': "Compa-Ratio Actual", 'font': {'size': 14, 'color': "#E2E8F0"}},
-                        number = {'valueformat': ".2f", 'font': {'color': "#F8FAFC", 'size': 32}},
-                        gauge = {
-                            'axis': {'range': [0.5, 1.5], 'tickwidth': 1, 'tickcolor': "white"},
-                            'bar': {'color': "#00D2D3"},
-                            'bgcolor': "rgba(255,255,255,0.05)",
-                            'borderwidth': 0,
-                            'steps': [
-                                {'range': [0.5, 0.8], 'color': 'rgba(239, 68, 68, 0.3)'},
-                                {'range': [0.8, 1.2], 'color': 'rgba(16, 185, 129, 0.3)'},
-                                {'range': [1.2, 1.5], 'color': 'rgba(245, 158, 11, 0.3)'}
-                            ],
-                            'threshold': {
-                                'line': {'color': "#FF4B4B", 'width': 4},
-                                'thickness': 0.75,
-                                'value': compa_ratio_propuesto
-                            }
+            # --- FILA 1 ---
+            row1_col1, row1_col2 = st.columns(2)
+            
+            with row1_col1:
+                st.markdown("#### 📊 Equidad Interna y Compa-Ratio")
+                # Velocímetro
+                fig_gauge = go.Figure(go.Indicator(
+                    mode = "gauge+number",
+                    value = compa_ratio_actual,
+                    domain = {'x': [0, 1], 'y': [0, 1]},
+                    title = {'text': "Compa-Ratio Actual", 'font': {'size': 14, 'color': "#E2E8F0"}},
+                    number = {'valueformat': ".2f", 'font': {'color': "#F8FAFC", 'size': 32}},
+                    gauge = {
+                        'axis': {'range': [0.5, 1.5], 'tickwidth': 1, 'tickcolor': "white"},
+                        'bar': {'color': "#00D2D3"},
+                        'bgcolor': "rgba(255,255,255,0.05)",
+                        'borderwidth': 0,
+                        'steps': [
+                            {'range': [0.5, 0.8], 'color': 'rgba(239, 68, 68, 0.3)'},
+                            {'range': [0.8, 1.2], 'color': 'rgba(16, 185, 129, 0.3)'},
+                            {'range': [1.2, 1.5], 'color': 'rgba(245, 158, 11, 0.3)'}
+                        ],
+                        'threshold': {
+                            'line': {'color': "#FF4B4B", 'width': 4},
+                            'thickness': 0.75,
+                            'value': compa_ratio_propuesto
                         }
-                    ))
-                    fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=240, margin=dict(t=30, b=10, l=20, r=20))
-                    st.plotly_chart(fig_gauge, use_container_width=True)
-                    
-                    # Explicación del Compa-Ratio
-                    texto_explicacion_compa = """
-                    <div class="chart-description" style="margin-top: -10px; margin-bottom: 20px;">
-                        <b>¿Cómo interpretar el Compa-Ratio?</b> Mide la competitividad del salario frente a la Mediana Comparativa (1.0).<br>
-                        • 🔴 <b>< 0.8:</b> Riesgo de fuga de talento (Subpagado).<br>
-                        • 🟢 <b>0.8 - 1.2:</b> Zona de equidad y competitividad.<br>
-                        • 🟠 <b>> 1.2:</b> Alto costo / Tope salarial (Sobrepagado).<br>
-                        <i>* La barra de color indica la posición actual, y la <b>línea roja</b> marca dónde quedará el empleado tras simular el incremento.</i>
-                    </div>
-                    """
-                    st.markdown(texto_explicacion_compa, unsafe_allow_html=True)
-                    
-                    # Gráfico de Barras Comparativo
-                    df_pares_local = df_pares_global.sort_values('salario_total', ascending=False).copy()
-                    
-                    # Resaltar al evaluado con otro color
-                    df_pares_local['Color'] = ['#FF4B4B' if t == trabajador_seleccionado else '#00D2D3' for t in df_pares_local['trabajador']]
-                    
-                    fig_bar = px.bar(df_pares_local, x="trabajador", y="salario_total", 
-                                     text="salario_total",
-                                     color="Color", color_discrete_map="identity",
-                                     labels={"trabajador": "Empleado", "salario_total": "Salario (USD)"})
-                    
-                    fig_bar.update_traces(texttemplate='USD %{text:,.0f}', textposition='outside')
-                    fig_bar.add_hline(y=analisis['salario_propuesto'], line_dash="dash", line_color="#FF4B4B", annotation_text="Propuesto")
-                    fig_bar.add_hline(y=mediana_cargo, line_dash="solid", line_color="#F59E0B", annotation_text="Mediana")
-                    
-                    fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=260, margin=dict(t=20, b=20, l=10, r=10))
-                    fig_bar.update_yaxes(gridcolor="rgba(255,255,255,0.1)", range=[0, max(df_pares_local['salario_total'].max(), analisis['salario_propuesto']) * 1.25])
-                    st.plotly_chart(fig_bar, use_container_width=True)
-                    
-                    # Análisis de texto dinámico
-                    pos_actual = (salario_actual/mediana_cargo)*100 if mediana_cargo > 0 else 100
-                    pos_nueva = (analisis['salario_propuesto']/mediana_cargo)*100 if mediana_cargo > 0 else 100
-                    texto_analisis_bar = f"<b>Interpretación:</b> {trabajador_seleccionado} gana USD {salario_actual:,.0f} ({pos_actual:.1f}% de la mediana comparativa). El nuevo sueldo (USD {analisis['salario_propuesto']:,.0f}) ajustará su posición al {pos_nueva:.1f}% frente a sus colegas directos."
-                    st.markdown(f'<div class="chart-description">{texto_analisis_bar}</div>', unsafe_allow_html=True)
+                    }
+                ))
+                fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=240, margin=dict(t=30, b=10, l=20, r=20))
+                st.plotly_chart(fig_gauge, use_container_width=True)
+                
+                # Explicación del Compa-Ratio
+                texto_explicacion_compa = """
+                <div class="chart-description" style="margin-top: -10px; margin-bottom: 20px;">
+                    <b>¿Cómo interpretar el Compa-Ratio?</b> Mide la competitividad del salario frente a la Mediana Comparativa (1.0).<br>
+                    • 🔴 <b>< 0.8:</b> Riesgo de fuga de talento (Subpagado).<br>
+                    • 🟢 <b>0.8 - 1.2:</b> Zona de equidad y competitividad.<br>
+                    • 🟠 <b>> 1.2:</b> Alto costo / Tope salarial (Sobrepagado).<br>
+                    <i>* La barra de color indica la posición actual, y la <b>línea roja</b> marca dónde quedará el empleado tras simular el incremento.</i>
+                </div>
+                """
+                st.markdown(texto_explicacion_compa, unsafe_allow_html=True)
 
-                with col_graf2:
-                    if col_antiguedad:
-                        st.markdown("#### 📈 Antigüedad vs Salario")
-                        # Scatter simplificado
-                        fig_scatter = px.scatter(df_pares_global, x=col_antiguedad, y="salario_total", text="trabajador",
-                                                 size="salario_total", color="cargo",
-                                                 labels={col_antiguedad: "Antigüedad (Años)", "salario_total": "Salario Total (USD)", "cargo": "Cargo"})
-                        fig_scatter.update_traces(textposition='top center')
-                        
-                        x_vals = df_pares_global[col_antiguedad].fillna(0).values
-                        y_vals = df_pares_global['salario_total'].fillna(0).values
-                        
-                        # Solo intentar hacer la línea de tendencia si hay al menos 2 puntos con X (antigüedad) distinto
-                        if len(x_vals) > 1 and len(set(x_vals)) > 1:
-                            try:
-                                m, c = np.polyfit(x_vals, y_vals, 1)
-                                x_line = np.linspace(x_vals.min(), x_vals.max(), 100)
-                                y_line = m * x_line + c
-                                
-                                fig_scatter.add_trace(go.Scatter(
-                                    x=x_line, y=y_line, mode='lines',
-                                    line=dict(color='rgba(255, 255, 255, 0.6)', dash='dash'),
-                                    name='Tendencia Esperada'
-                                ))
-                                
-                                fig_scatter.add_trace(go.Scatter(
-                                    x=np.concatenate([x_line, x_line[::-1]]),
-                                    y=np.concatenate([y_line * 1.15, (y_line * 0.85)[::-1]]),
-                                    fill='toself',
-                                    fillcolor='rgba(0, 210, 211, 0.1)',
-                                    line=dict(color='rgba(255,255,255,0)'),
-                                    hoverinfo="skip",
-                                    name="Tolerancia (±15%)"
-                                ))
-                            except Exception:
-                                pass # Ignorar si la matemática de la tendencia falla
-                        
-                        # Resaltar evaluado
-                        fig_scatter.add_trace(go.Scatter(
-                            x=[datos_empleado.get(col_antiguedad, 0)], y=[salario_actual], mode='markers+text',
-                            marker=dict(color='#EF4444', size=22, symbol='star', line=dict(color='white', width=2)),
-                            text=[f"Eval: {trabajador_seleccionado}"], textposition="bottom center", name="Evaluado",
-                            textfont=dict(color="#EF4444", size=12, weight="bold")
-                        ))
-                        
-                        fig_scatter.update_layout(
-                            plot_bgcolor="rgba(0,0,0,0)", 
-                            paper_bgcolor="rgba(0,0,0,0)", 
-                            font_color="#E2E8F0", 
-                            height=500, 
-                            margin=dict(t=20, b=20, l=20, r=20),
-                            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0.5)")
-                        )
-                        fig_scatter.update_xaxes(gridcolor="rgba(255,255,255,0.1)")
-                        fig_scatter.update_yaxes(gridcolor="rgba(255,255,255,0.1)")
-                        st.plotly_chart(fig_scatter, use_container_width=True)
-                        
-                        texto_analisis_scatter = f"<b>Interpretación:</b> Con {datos_empleado.get(col_antiguedad, 0):.1f} años de antigüedad, el sueldo busca respetar la curva de experiencia del equipo. Puntos muy por debajo de la zona sombreada alertan sobre un alto riesgo de rotación por falta de equidad."
-                        st.markdown(f'<div class="chart-description">{texto_analisis_scatter}</div>', unsafe_allow_html=True)
-                    else:
-                        st.warning("No se encontró columna de antigüedad para la tendencia.")
+            with row1_col2:
+                if col_antiguedad:
+                    st.markdown("#### 📈 Antigüedad vs Salario")
+                    # Scatter simplificado
+                    fig_scatter = px.scatter(df_pares_global, x=col_antiguedad, y="salario_total", text="trabajador",
+                                             size="salario_total", color="cargo",
+                                             labels={col_antiguedad: "Antigüedad (Años)", "salario_total": "Salario Total (USD)", "cargo": "Cargo"})
+                    fig_scatter.update_traces(textposition='top center')
+                    
+                    x_vals = df_pares_global[col_antiguedad].fillna(0).values
+                    y_vals = df_pares_global['salario_total'].fillna(0).values
+                    
+                    # Solo intentar hacer la línea de tendencia si hay al menos 2 puntos con X (antigüedad) distinto
+                    if len(x_vals) > 1 and len(set(x_vals)) > 1:
+                        try:
+                            m, c = np.polyfit(x_vals, y_vals, 1)
+                            x_line = np.linspace(x_vals.min(), x_vals.max(), 100)
+                            y_line = m * x_line + c
+                            
+                            fig_scatter.add_trace(go.Scatter(
+                                x=x_line, y=y_line, mode='lines',
+                                line=dict(color='rgba(255, 255, 255, 0.6)', dash='dash'),
+                                name='Tendencia Esperada'
+                            ))
+                            
+                            fig_scatter.add_trace(go.Scatter(
+                                x=np.concatenate([x_line, x_line[::-1]]),
+                                y=np.concatenate([y_line * 1.15, (y_line * 0.85)[::-1]]),
+                                fill='toself',
+                                fillcolor='rgba(0, 210, 211, 0.1)',
+                                line=dict(color='rgba(255,255,255,0)'),
+                                hoverinfo="skip",
+                                name="Tolerancia (±15%)"
+                            ))
+                        except Exception:
+                            pass # Ignorar si la matemática de la tendencia falla
+                    
+                    # Resaltar evaluado
+                    fig_scatter.add_trace(go.Scatter(
+                        x=[datos_empleado.get(col_antiguedad, 0)], y=[salario_actual], mode='markers+text',
+                        marker=dict(color='#EF4444', size=22, symbol='star', line=dict(color='white', width=2)),
+                        text=[f"Eval: {trabajador_seleccionado}"], textposition="bottom center", name="Evaluado",
+                        textfont=dict(color="#EF4444", size=12, weight="bold")
+                    ))
+                    
+                    fig_scatter.update_layout(
+                        plot_bgcolor="rgba(0,0,0,0)", 
+                        paper_bgcolor="rgba(0,0,0,0)", 
+                        font_color="#E2E8F0", 
+                        height=240, 
+                        margin=dict(t=20, b=20, l=20, r=20),
+                        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0.5)")
+                    )
+                    fig_scatter.update_xaxes(gridcolor="rgba(255,255,255,0.1)")
+                    fig_scatter.update_yaxes(gridcolor="rgba(255,255,255,0.1)")
+                    st.plotly_chart(fig_scatter, use_container_width=True)
+                    
+                    texto_analisis_scatter = f"<b>Interpretación:</b> Con {datos_empleado.get(col_antiguedad, 0):.1f} años de antigüedad, el sueldo busca respetar la curva de experiencia del equipo. Puntos muy por debajo de la zona sombreada alertan sobre un alto riesgo de rotación por falta de equidad."
+                    st.markdown(f'<div class="chart-description" style="margin-top: -10px; margin-bottom: 20px;">{texto_analisis_scatter}</div>', unsafe_allow_html=True)
+                else:
+                    st.warning("No se encontró columna de antigüedad para la tendencia.")
+
+            # --- FILA 2 ---
+            st.markdown("<br>", unsafe_allow_html=True)
+            row2_col1, row2_col2 = st.columns(2)
+            
+            with row2_col1:
+                st.markdown("#### ⚖️ Comparativa Directa de Pares")
+                # Gráfico de Barras Comparativo
+                df_pares_local = df_pares_global.sort_values('salario_total', ascending=False).copy()
+                
+                # Resaltar al evaluado con otro color
+                df_pares_local['Color'] = ['#FF4B4B' if t == trabajador_seleccionado else '#00D2D3' for t in df_pares_local['trabajador']]
+                
+                fig_bar = px.bar(df_pares_local, x="trabajador", y="salario_total", 
+                                 text="salario_total",
+                                 color="Color", color_discrete_map="identity",
+                                 labels={"trabajador": "Empleado", "salario_total": "Salario (USD)"})
+                
+                fig_bar.update_traces(texttemplate='USD %{text:,.0f}', textposition='outside')
+                fig_bar.add_hline(y=analisis['salario_propuesto'], line_dash="dash", line_color="#FF4B4B", annotation_text="Propuesto")
+                fig_bar.add_hline(y=mediana_cargo, line_dash="solid", line_color="#F59E0B", annotation_text="Mediana")
+                
+                fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=260, margin=dict(t=20, b=20, l=10, r=10))
+                fig_bar.update_yaxes(gridcolor="rgba(255,255,255,0.1)", range=[0, max(df_pares_local['salario_total'].max(), analisis['salario_propuesto']) * 1.25])
+                st.plotly_chart(fig_bar, use_container_width=True)
+                
+                # Análisis de texto dinámico
+                pos_actual = (salario_actual/mediana_cargo)*100 if mediana_cargo > 0 else 100
+                pos_nueva = (analisis['salario_propuesto']/mediana_cargo)*100 if mediana_cargo > 0 else 100
+                texto_analisis_bar = f"<b>Interpretación:</b> {trabajador_seleccionado} gana USD {salario_actual:,.0f} ({pos_actual:.1f}% de la mediana comparativa). El nuevo sueldo (USD {analisis['salario_propuesto']:,.0f}) ajustará su posición al {pos_nueva:.1f}% frente a sus colegas directos."
+                st.markdown(f'<div class="chart-description">{texto_analisis_bar}</div>', unsafe_allow_html=True)
+                
+            with row2_col2:
+                st.markdown("#### 📦 Distribución Salarial (Cajas)")
+                # Gráfico de Caja y Bigotes
+                fig_box = px.box(df_pares_global, x="cargo", y="salario_total", points="all",
+                                 color="cargo",
+                                 labels={"cargo": "Cargo", "salario_total": "Salario Total (USD)"})
+                
+                # Líneas de referencia
+                fig_box.add_hline(y=salario_actual, line_dash="solid", line_color="#00D2D3", annotation_text="Actual")
+                fig_box.add_hline(y=analisis['salario_propuesto'], line_dash="dash", line_color="#FF4B4B", annotation_text="Propuesto")
+                
+                fig_box.update_layout(
+                    plot_bgcolor="rgba(0,0,0,0)", 
+                    paper_bgcolor="rgba(0,0,0,0)", 
+                    font_color="#E2E8F0", 
+                    height=260, 
+                    margin=dict(t=20, b=20, l=10, r=10),
+                    showlegend=False
+                )
+                fig_box.update_yaxes(gridcolor="rgba(255,255,255,0.1)")
+                st.plotly_chart(fig_box, use_container_width=True)
+                
+                texto_analisis_box = f"<b>Interpretación:</b> La 'caja' azul muestra dónde se concentra el 50% de los sueldos del mercado analizado. Los 'bigotes' marcan los extremos, y los puntos son colegas individuales. La <b>línea roja</b> te muestra cómo quedará la propuesta frente a la distribución general."
+                st.markdown(f'<div class="chart-description">{texto_analisis_box}</div>', unsafe_allow_html=True)
                 
                 # Moviendo el cuadro comparativo a ancho completo para no romper la alineación
                 st.markdown("---")
