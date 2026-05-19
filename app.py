@@ -158,20 +158,19 @@ if archivo_cargado is not None:
             st.stop()
 
         # Sidebar - Selección de Trabajadores
-        st.sidebar.header("👤 2. Seleccionar Trabajadores")
+        st.sidebar.header("👤 2. Seleccionar Trabajador")
         nombres_trabajadores = df['trabajador'].dropna().unique().tolist()
-        trabajadores_seleccionados = st.sidebar.multiselect(
-            "Buscar empleado(s) solicitante(s):", 
-            nombres_trabajadores, 
-            default=[nombres_trabajadores[0]] if nombres_trabajadores else []
+        trabajador_seleccionado = st.sidebar.selectbox(
+            "Buscar empleado solicitante:", 
+            nombres_trabajadores
         )
         
-        if not trabajadores_seleccionados:
-            st.warning("👈 Por favor, selecciona al menos un empleado en el panel izquierdo.")
+        if not trabajador_seleccionado:
+            st.warning("👈 Por favor, selecciona un empleado en el panel izquierdo.")
             st.stop()
             
         # Determinar cargos de los seleccionados para default
-        cargos_default = df[df['trabajador'].isin(trabajadores_seleccionados)]['cargo'].unique().tolist()
+        cargos_default = df[df['trabajador'] == trabajador_seleccionado]['cargo'].unique().tolist()
         
         # Sidebar - Selección de Cargos a comparar
         st.sidebar.header("🔍 3. Filtro de Cargos Similares")
@@ -197,43 +196,35 @@ if archivo_cargado is not None:
         st.sidebar.markdown("💡 **Ajustes Sugeridos a la Mediana**")
         st.sidebar.caption("Se preestablece el % para alcanzar la mediana comparativa, pero puedes editarlo libremente.")
         
-        aumentos_solicitados = {}
-        for i, trabajador in enumerate(trabajadores_seleccionados):
-            datos_empleado = df[df['trabajador'] == trabajador].iloc[0]
-            salario_actual = datos_empleado.get('salario_total', 0)
+        datos_empleado = df[df['trabajador'] == trabajador_seleccionado].iloc[0]
+        salario_actual = datos_empleado.get('salario_total', 0)
+        
+        # Calcular ajuste a la mediana
+        if mediana_global > salario_actual and salario_actual > 0:
+            porcentaje_sugerido = ((mediana_global / salario_actual) - 1) * 100
+        else:
+            porcentaje_sugerido = inflacion
             
-            # Calcular ajuste a la mediana
-            if mediana_global > salario_actual and salario_actual > 0:
-                porcentaje_sugerido = ((mediana_global / salario_actual) - 1) * 100
-            else:
-                # Si ya gana más que la mediana, sugerimos la inflación por defecto
-                porcentaje_sugerido = inflacion
-                
-            val = st.sidebar.number_input(
-                f"Incremento: {trabajador.split()[0]} (%)", 
-                min_value=0.0, max_value=500.0, 
-                value=float(round(porcentaje_sugerido, 1)), 
-                step=0.5,
-                key=f"inc_{i}"
-            )
-            aumentos_solicitados[trabajador] = val
+        aumento_solicitado = st.sidebar.number_input(
+            f"Incremento a Simular (%)", 
+            min_value=0.0, max_value=500.0, 
+            value=float(round(porcentaje_sugerido, 1)), 
+            step=0.5
+        )
 
         st.markdown("<br>", unsafe_allow_html=True)
-        tab1, tab2 = st.tabs(["👤 Análisis Individual (Simulador)", "🏢 Dashboard Global (Empresa)"])
+        tab1 = st.container()
         
         df_pares_global = df[df['cargo'].str.lower().isin([c.lower() for c in cargos_comparativa])]
 
         with tab1:
-            for trabajador_seleccionado in trabajadores_seleccionados:
-                datos_empleado = df[df['trabajador'] == trabajador_seleccionado].iloc[0]
+            for trabajador_seleccionado in [trabajador_seleccionado]:
                 cargo_empleado = datos_empleado['cargo']
-                salario_actual = datos_empleado.get('salario_total', 0)
 
                 st.markdown(f"### Simulador de Incremento para: **{trabajador_seleccionado.title()}**")
                 st.markdown(f"**Cargo:** {cargo_empleado.title()} | **Antigüedad:** {datos_empleado.get('antigüedad', 'N/D')} años")
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                aumento_solicitado = aumentos_solicitados[trabajador_seleccionado]
                 analisis = lf.evaluar_incremento(salario_actual, aumento_solicitado, inflacion)
                 
                 mediana_cargo = metricas_comparativa_global['mediana'] if metricas_comparativa_global else 0
@@ -447,39 +438,7 @@ if archivo_cargado is not None:
 
                 st.markdown("<hr style='border: 2px solid #00D2D3; margin: 50px 0;'>", unsafe_allow_html=True)
 
-        with tab2:
-            st.markdown("### 🏢 Dashboard de Compensación Organizacional")
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            g1, g2, g3, g4 = st.columns(4)
-            with g1:
-                st.markdown(render_kpi_card("Total Empleados", len(df), border_color="#00D2D3"), unsafe_allow_html=True)
-            with g2:
-                st.markdown(render_kpi_card("Nómina Total Mensual", f"USD {df['salario_total'].sum():,.2f}", border_color="#48BB78"), unsafe_allow_html=True)
-            with g3:
-                st.markdown(render_kpi_card("Promedio Salarial", f"USD {df['salario_total'].mean():,.2f}", border_color="#F59E0B"), unsafe_allow_html=True)
-            with g4:
-                st.markdown(render_kpi_card("Cargos Distintos", f"{df['cargo'].nunique()}", border_color="#8B5CF6"), unsafe_allow_html=True)
-            
-            st.markdown("---")
-            
-            col_dash1, col_dash2 = st.columns(2)
-            
-            with col_dash1:
-                col_dpto = next((c for c in df.columns if 'departamento' in c or 'area' in c or 'área' in c), None)
-                if col_dpto:
-                    st.markdown("#### 📊 Distribución de Nómina por Departamento")
-                    df_dpto = df.groupby(col_dpto)['salario_total'].sum().reset_index()
-                    fig_pie = px.pie(df_dpto, values='salario_total', names=col_dpto, hole=0.6,
-                                     color_discrete_sequence=px.colors.sequential.Mint)
-                    fig_pie.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=350, margin=dict(t=20, b=10, l=10, r=10))
-                    st.plotly_chart(fig_pie, use_container_width=True)
-                    st.markdown('<div class="chart-description"><b>Gasto por Departamento:</b> Muestra qué porcentaje del presupuesto total de nómina mensual se asigna a cada una de las áreas funcionales de la empresa.</div>', unsafe_allow_html=True)
-                else:
-                    st.info("Añade la columna 'Departamento' en el archivo para ver este análisis.")
-            
-            with col_dash2:
-                st.info("Espacio reservado para futuros análisis organizacionales.")
+        # Dashboard Global removido según requerimiento
 
     except Exception as e:
         st.error(f"Ocurrió un error al procesar el archivo: {e}")
