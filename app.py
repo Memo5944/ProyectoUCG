@@ -278,6 +278,18 @@ if archivo_cargado is not None:
                     fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=240, margin=dict(t=30, b=10, l=20, r=20))
                     st.plotly_chart(fig_gauge, use_container_width=True)
                     
+                    # Explicación del Compa-Ratio
+                    texto_explicacion_compa = """
+                    <div class="chart-description" style="margin-top: -10px; margin-bottom: 20px;">
+                        <b>¿Cómo interpretar el Compa-Ratio?</b> Mide la competitividad del salario frente a la Mediana Comparativa (1.0).<br>
+                        • 🔴 <b>< 0.8:</b> Riesgo de fuga de talento (Subpagado).<br>
+                        • 🟢 <b>0.8 - 1.2:</b> Zona de equidad y competitividad.<br>
+                        • 🟠 <b>> 1.2:</b> Alto costo / Tope salarial (Sobrepagado).<br>
+                        <i>* La barra de color indica la posición actual, y la <b>línea roja</b> marca dónde quedará el empleado tras simular el incremento.</i>
+                    </div>
+                    """
+                    st.markdown(texto_explicacion_compa, unsafe_allow_html=True)
+                    
                     # Gráfico de Barras Comparativo
                     df_pares_local = df_pares_global.sort_values('salario_total', ascending=False).copy()
                     
