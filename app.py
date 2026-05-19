@@ -223,10 +223,12 @@ if archivo_cargado is not None:
         st.sidebar.markdown(f"🔍 [Buscar salario de **{cargo_para_busqueda.title()}** en Glassdoor](https://www.glassdoor.com/Salaries/index.htm)")
         st.sidebar.markdown(f"🌐 [Investigar promedio en Google](https://www.google.com/search?q=salario+promedio+{query_cargo}+mercado)")
         
+        estimacion_inicial = lf.estimar_mercado_externo(cargo_para_busqueda, mediana_global)
+        
         salario_mercado_externo = st.sidebar.number_input(
-            "Ingresa la Mediana Externa (USD)", 
-            min_value=0.0, value=0.0, step=50.0, 
-            help="Ingresa el valor encontrado en tu investigación para agregarlo al diagnóstico."
+            "Mediana Externa Estimada (USD)", 
+            min_value=0.0, value=float(estimacion_inicial), step=50.0, 
+            help="Valor sugerido por el sistema basado en el cargo o la equidad interna. Puedes editarlo si tienes un dato más exacto."
         )
 
         st.markdown("<br>", unsafe_allow_html=True)

@@ -88,3 +88,32 @@ def calcular_compa_ratio(salario_total, mediana_cargo):
     if not mediana_cargo or mediana_cargo == 0:
         return 1.0
     return salario_total / mediana_cargo
+
+def estimar_mercado_externo(cargo, mediana_interna):
+    """
+    Estima el salario de mercado externo basándose en un diccionario de cargos comunes,
+    o en su defecto, asume un +15% sobre la mediana interna como prima de mercado.
+    """
+    cargo_str = str(cargo).lower()
+    
+    # Base de datos simulada de sueldos de mercado (USD)
+    mercado_referencia = {
+        'analista financiero': 1600.0,
+        'gerente': 3500.0,
+        'desarrollador': 2500.0,
+        'contador': 1400.0,
+        'recursos humanos': 1500.0,
+        'director': 5000.0,
+        'asistente': 800.0,
+        'vendedor': 1200.0
+    }
+    
+    for key, val in mercado_referencia.items():
+        if key in cargo_str:
+            return float(val)
+            
+    # Si no se encuentra en la base, estimar un 15% por encima de la mediana interna
+    if mediana_interna and mediana_interna > 0:
+        return float(mediana_interna * 1.15)
+        
+    return 0.0
