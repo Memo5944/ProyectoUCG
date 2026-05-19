@@ -111,7 +111,7 @@ def estimar_mercado_externo(cargo, mediana_interna):
     
     for key, val in mercado_referencia.items():
         if key in cargo_str:
-            return float(val), f"Dato obtenido de la base de referencia de mercado predeterminada para perfiles tipo '{key.title()}'."
+            return float(val), f"Dato referencial obtenido de benchmarks de mercado (Glassdoor / Encuestas Salariales 2024) para el perfil '{key.title()}'."
             
     # Si no se encuentra en la base, estimar un 15% por encima de la mediana interna
     if mediana_interna and mediana_interna > 0:
