@@ -222,7 +222,9 @@ if archivo_cargado is not None:
                 cargo_empleado = datos_empleado['cargo']
 
                 st.markdown(f"### Simulador de Incremento para: **{trabajador_seleccionado.title()}**")
-                st.markdown(f"**Cargo:** {cargo_empleado.title()} | **Antigüedad:** {datos_empleado.get('antigüedad', 'N/D')} años")
+                antiguedad_val = datos_empleado.get('antigüedad', 'N/D')
+                antiguedad_str = f"{antiguedad_val:.2f}" if isinstance(antiguedad_val, (int, float)) else antiguedad_val
+                st.markdown(f"**Cargo:** {cargo_empleado.title()} | **Antigüedad:** {antiguedad_str} años")
                 st.markdown("<br>", unsafe_allow_html=True)
                 
                 analisis = lf.evaluar_incremento(salario_actual, aumento_solicitado, inflacion)
