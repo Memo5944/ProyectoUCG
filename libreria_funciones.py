@@ -54,3 +54,20 @@ def evaluar_incremento(salario_actual, porcentaje_incremento, porcentaje_inflaci
         'perdida_inflacion': perdida_por_inflacion,
         'aumento_real_monto': aumento_real
     }
+
+def obtener_metricas_cargos_multiples(df, cargos):
+    """
+    Obtiene métricas estadísticas (mediana, promedio, min, max) para una lista de cargos.
+    """
+    df_cargos = df[df['cargo'].str.lower().isin([c.lower() for c in cargos])]
+    if df_cargos.empty:
+        return None
+    
+    metricas = {
+        'mediana': df_cargos['salario_total'].median(),
+        'promedio': df_cargos['salario_total'].mean(),
+        'min': df_cargos['salario_total'].min(),
+        'max': df_cargos['salario_total'].max(),
+        'cantidad': len(df_cargos)
+    }
+    return metricas
