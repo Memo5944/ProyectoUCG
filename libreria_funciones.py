@@ -93,6 +93,7 @@ def estimar_mercado_externo(cargo, mediana_interna):
     """
     Estima el salario de mercado externo basándose en un diccionario de cargos comunes,
     o en su defecto, asume un +15% sobre la mediana interna como prima de mercado.
+    Retorna una tupla: (valor_estimado, texto_explicativo_del_origen)
     """
     cargo_str = str(cargo).lower()
     
@@ -110,10 +111,10 @@ def estimar_mercado_externo(cargo, mediana_interna):
     
     for key, val in mercado_referencia.items():
         if key in cargo_str:
-            return float(val)
+            return float(val), f"Dato obtenido de la base de referencia de mercado predeterminada para perfiles tipo '{key.title()}'."
             
     # Si no se encuentra en la base, estimar un 15% por encima de la mediana interna
     if mediana_interna and mediana_interna > 0:
-        return float(mediana_interna * 1.15)
+        return float(mediana_interna * 1.15), "Cargo no hallado en la base de mercado externa. El sistema asume un diferencial del 15% por encima de la Mediana Interna de la empresa como prima estándar de competitividad en el mercado laboral."
         
-    return 0.0
+    return 0.0, "Sin datos para estimación automática (por favor ingresa el valor manualmente tras investigar en los enlaces provistos)."
