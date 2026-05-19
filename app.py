@@ -203,7 +203,7 @@ if archivo_cargado is not None:
         if mediana_global > salario_actual and salario_actual > 0:
             porcentaje_sugerido = ((mediana_global / salario_actual) - 1) * 100
         else:
-            porcentaje_sugerido = inflacion
+            porcentaje_sugerido = 0.0
             
         aumento_solicitado = st.sidebar.number_input(
             f"Incremento a Simular (%)", 
