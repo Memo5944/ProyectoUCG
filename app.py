@@ -211,6 +211,23 @@ if archivo_cargado is not None:
             value=float(round(porcentaje_sugerido, 1)), 
             step=0.5
         )
+        
+        st.sidebar.markdown("---")
+        st.sidebar.header("🌍 5. Benchmark de Mercado Externo")
+        st.sidebar.caption("Investiga y compara el sueldo con el mercado laboral externo.")
+        
+        cargo_para_busqueda = str(datos_empleado.get('cargo', '')).strip()
+        query_cargo = cargo_para_busqueda.replace(' ', '+')
+        
+        # Enlaces de investigación
+        st.sidebar.markdown(f"🔍 [Buscar salario de **{cargo_para_busqueda.title()}** en Glassdoor](https://www.glassdoor.com/Salaries/index.htm)")
+        st.sidebar.markdown(f"🌐 [Investigar promedio en Google](https://www.google.com/search?q=salario+promedio+{query_cargo}+mercado)")
+        
+        salario_mercado_externo = st.sidebar.number_input(
+            "Ingresa la Mediana Externa (USD)", 
+            min_value=0.0, value=0.0, step=50.0, 
+            help="Ingresa el valor encontrado en tu investigación para agregarlo al diagnóstico."
+        )
 
         st.markdown("<br>", unsafe_allow_html=True)
         tab1 = st.container()
@@ -464,23 +481,39 @@ if archivo_cargado is not None:
             st.dataframe(df_comparativo.style.apply(highlight_selected, axis=1).format(formato_columnas), use_container_width=True)
             
             st.markdown("#### 🤖 Diagnóstico Salarial Estratégico")
-            col_diag1, col_diag2 = st.columns(2)
+            col_diag1, col_diag2, col_diag3 = st.columns(3)
             with col_diag1:
+                st.markdown("##### 🏢 Frente al Mercado Interno")
                 if metricas_comparativa_global:
                     if analisis['salario_propuesto'] > metricas_comparativa_global['max']:
-                        st.error(f"⚠️ Alerta de Inequidad: El salario propuesto (USD {analisis['salario_propuesto']:,.2f}) superaría el máximo actual pagado en la comparativa (USD {metricas_comparativa_global['max']:,.2f}). Podría generar tensión interna.")
+                        st.error(f"⚠️ **Alerta de Inequidad:** El salario propuesto (USD {analisis['salario_propuesto']:,.2f}) superaría el máximo actual pagado internamente (USD {metricas_comparativa_global['max']:,.2f}).")
                     elif analisis['salario_propuesto'] < metricas_comparativa_global['mediana']:
-                        st.success(f"✅ Viable en Equidad: El salario propuesto (USD {analisis['salario_propuesto']:,.2f}) se mantiene por debajo de la mediana comparativa (USD {metricas_comparativa_global['mediana']:,.2f}). Es un ajuste seguro.")
+                        st.success(f"✅ **Viable en Equidad:** El salario propuesto (USD {analisis['salario_propuesto']:,.2f}) se mantiene por debajo de la mediana comparativa interna (USD {metricas_comparativa_global['mediana']:,.2f}).")
                     else:
-                        st.info(f"ℹ️ Posicionamiento Competitivo: El salario propuesto se encuentra en el rango superior competitivo del mercado interno comparado.")
+                        st.info(f"ℹ️ **Posicionamiento Competitivo:** El salario propuesto se encuentra en el rango superior competitivo del mercado interno.")
             
             with col_diag2:
+                st.markdown("##### 📊 Riesgo de Retención (Compa-Ratio)")
                 if compa_ratio_actual < 0.8:
-                    st.warning(f"⚠️ Alerta de Retención (Compa-Ratio: {compa_ratio_actual:.2f}): El empleado está subpagado con respecto a sus compañeros. Un aumento es recomendado para evitar fuga de talento.")
+                    st.warning(f"⚠️ **Riesgo Alto (CR: {compa_ratio_actual:.2f}):** El empleado está subpagado frente a sus pares. Aumento recomendado para evitar fuga.")
                 elif compa_ratio_actual > 1.2:
-                    st.info(f"ℹ️ Alta Inversión (Compa-Ratio: {compa_ratio_actual:.2f}): El empleado está altamente compensado. Asegúrate de que su desempeño justifique este nivel.")
+                    st.info(f"ℹ️ **Alta Inversión (CR: {compa_ratio_actual:.2f}):** El empleado está en el tope salarial interno.")
                 else:
-                    st.success(f"✅ Alineación de Mercado (Compa-Ratio: {compa_ratio_actual:.2f}): El salario del empleado es competitivo y está bien alineado.")
+                    st.success(f"✅ **Alineado (CR: {compa_ratio_actual:.2f}):** El salario base es competitivo frente a sus colegas.")
+
+            with col_diag3:
+                st.markdown("##### 🌍 Frente al Mercado Externo")
+                if salario_mercado_externo > 0:
+                    diferencia_ext = analisis['salario_propuesto'] - salario_mercado_externo
+                    pct_ext = (diferencia_ext / salario_mercado_externo) * 100
+                    if pct_ext < -10:
+                        st.error(f"📉 **Bajo Mercado Externo:** La propuesta está **{abs(pct_ext):.1f}% por debajo** de la mediana externa (USD {salario_mercado_externo:,.0f}). Difícil atraer/retener talento.")
+                    elif pct_ext > 10:
+                        st.warning(f"📈 **Sobre Mercado Externo:** La propuesta está **{pct_ext:.1f}% por encima** de la mediana externa. Somos altamente competitivos, pero vigilar costos.")
+                    else:
+                        st.success(f"🎯 **Competitivo Externamente:** La propuesta está alineada (±10%) con el valor de mercado externo (USD {salario_mercado_externo:,.0f}).")
+                else:
+                    st.info("ℹ️ Utiliza las herramientas del panel izquierdo (Paso 5) para investigar e ingresar el salario del mercado externo y obtener este diagnóstico.")
 
             st.markdown("<hr style='border: 2px solid #00D2D3; margin: 50px 0;'>", unsafe_allow_html=True)
 
