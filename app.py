@@ -186,19 +186,41 @@ if archivo_cargado is not None:
             st.warning("👈 Por favor, selecciona al menos un cargo para realizar la comparativa.")
             st.stop()
 
+        metricas_comparativa_global = lf.obtener_metricas_cargos_multiples(df, cargos_comparativa)
+        mediana_global = metricas_comparativa_global['mediana'] if metricas_comparativa_global else 0
+
         # Sidebar - Parámetros de Simulación
         st.sidebar.header("📈 4. Parámetros de Simulación")
         inflacion = st.sidebar.number_input("Inflación Anual Esperada (%)", min_value=0.0, max_value=100.0, value=3.0, step=0.1)
         
-        # Calcular incremento sugerido
-        sugerencia = inflacion
-        st.sidebar.markdown(f"💡 **El sistema sugiere un incremento base de {sugerencia:.1f}%** alineado a la inflación esperada.")
-        aumento_solicitado = st.sidebar.slider("Incremento a simular (%)", min_value=0.0, max_value=50.0, value=float(sugerencia), step=0.5)
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("💡 **Ajustes Sugeridos a la Mediana**")
+        st.sidebar.caption("Se preestablece el % para alcanzar la mediana comparativa, pero puedes editarlo libremente.")
+        
+        aumentos_solicitados = {}
+        for i, trabajador in enumerate(trabajadores_seleccionados):
+            datos_empleado = df[df['trabajador'] == trabajador].iloc[0]
+            salario_actual = datos_empleado.get('salario_total', 0)
+            
+            # Calcular ajuste a la mediana
+            if mediana_global > salario_actual and salario_actual > 0:
+                porcentaje_sugerido = ((mediana_global / salario_actual) - 1) * 100
+            else:
+                # Si ya gana más que la mediana, sugerimos la inflación por defecto
+                porcentaje_sugerido = inflacion
+                
+            val = st.sidebar.number_input(
+                f"Incremento: {trabajador.split()[0]} (%)", 
+                min_value=0.0, max_value=500.0, 
+                value=float(round(porcentaje_sugerido, 1)), 
+                step=0.5,
+                key=f"inc_{i}"
+            )
+            aumentos_solicitados[trabajador] = val
 
         st.markdown("<br>", unsafe_allow_html=True)
         tab1, tab2 = st.tabs(["👤 Análisis Individual (Simulador)", "🏢 Dashboard Global (Empresa)"])
         
-        metricas_comparativa_global = lf.obtener_metricas_cargos_multiples(df, cargos_comparativa)
         df_pares_global = df[df['cargo'].str.lower().isin([c.lower() for c in cargos_comparativa])]
 
         with tab1:
@@ -211,6 +233,7 @@ if archivo_cargado is not None:
                 st.markdown(f"**Cargo:** {cargo_empleado.title()} | **Antigüedad:** {datos_empleado.get('antigüedad', 'N/D')} años")
                 st.markdown("<br>", unsafe_allow_html=True)
                 
+                aumento_solicitado = aumentos_solicitados[trabajador_seleccionado]
                 analisis = lf.evaluar_incremento(salario_actual, aumento_solicitado, inflacion)
                 
                 mediana_cargo = metricas_comparativa_global['mediana'] if metricas_comparativa_global else 0
