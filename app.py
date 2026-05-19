@@ -409,78 +409,78 @@ if archivo_cargado is not None:
                 texto_analisis_box = f"<b>Interpretación:</b> La 'caja' azul muestra dónde se concentra el 50% de los sueldos del mercado analizado. Los 'bigotes' marcan los extremos, y los puntos son colegas individuales. La <b>línea roja</b> te muestra cómo quedará la propuesta frente a la distribución general."
                 st.markdown(f'<div class="chart-description">{texto_analisis_box}</div>', unsafe_allow_html=True)
                 
-                # Moviendo el cuadro comparativo a ancho completo para no romper la alineación
-                st.markdown("---")
-                st.markdown("#### 📋 Cuadro Comparativo Detallado de Pares (Ranking y Simulación)")
+            # Moviendo el cuadro comparativo a ancho completo
+            st.markdown("---")
+            st.markdown("#### 📋 Cuadro Comparativo Detallado de Pares (Ranking y Simulación)")
+            
+            cols_to_select = ['trabajador', 'cargo']
+            if col_antiguedad: cols_to_select.append(col_antiguedad)
+            
+            # Agregamos base y horas extras para mostrar que se consideran
+            has_base = 'salario_base_limpio' in df_pares_global.columns
+            if has_base: cols_to_select.extend(['salario_base_limpio', 'total_horas_extras'])
+            
+            cols_to_select.append('salario_total')
+            
+            df_comparativo = df_pares_global[cols_to_select].copy()
+            df_comparativo['Salario Nuevo'] = df_comparativo['salario_total'].astype(float)
+            df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = float(analisis['salario_propuesto'])
+            
+            # Nuevas métricas
+            df_comparativo['Diferencia ($)'] = df_comparativo['Salario Nuevo'] - df_comparativo['salario_total']
+            df_comparativo['Crecimiento (%)'] = np.where(df_comparativo['salario_total'] > 0, (df_comparativo['Diferencia ($)'] / df_comparativo['salario_total']) * 100, 0)
+            
+            columnas_finales = ['Empleado', 'Cargo']
+            if col_antiguedad: columnas_finales.append('Años')
+            if has_base: columnas_finales.extend(['Salario Base', 'Horas Extras Fijas'])
+            columnas_finales.extend(['Salario Actual', 'Salario Nuevo', 'Diferencia ($)', 'Crecimiento (%)'])
+            
+            df_comparativo.columns = columnas_finales
+            
+            # Formateamos Años a 2 decimales si existe
+            if 'Años' in df_comparativo.columns:
+                df_comparativo['Años'] = df_comparativo['Años'].round(2)
                 
-                cols_to_select = ['trabajador', 'cargo']
-                if col_antiguedad: cols_to_select.append(col_antiguedad)
+            df_comparativo = df_comparativo.sort_values('Salario Nuevo', ascending=False).reset_index(drop=True)
+            
+            def highlight_selected(row):
+                if row['Empleado'] == trabajador_seleccionado:
+                    return ['background-color: rgba(239, 68, 68, 0.2); color: white; font-weight: bold'] * len(row)
+                return [''] * len(row)
                 
-                # Agregamos base y horas extras para mostrar que se consideran
-                has_base = 'salario_base_limpio' in df_pares_global.columns
-                if has_base: cols_to_select.extend(['salario_base_limpio', 'total_horas_extras'])
+            formato_columnas = {
+                'Salario Actual': '${:,.2f}',
+                'Salario Nuevo': '${:,.2f}',
+                'Diferencia ($)': '${:,.2f}',
+                'Crecimiento (%)': '{:,.2f}%',
+                'Años': '{:.2f}'
+            }
+            if has_base:
+                formato_columnas['Salario Base'] = '${:,.2f}'
+                formato_columnas['Horas Extras Fijas'] = '${:,.2f}'
                 
-                cols_to_select.append('salario_total')
-                
-                df_comparativo = df_pares_global[cols_to_select].copy()
-                df_comparativo['Salario Nuevo'] = df_comparativo['salario_total'].astype(float)
-                df_comparativo.loc[df_comparativo['trabajador'] == trabajador_seleccionado, 'Salario Nuevo'] = float(analisis['salario_propuesto'])
-                
-                # Nuevas métricas
-                df_comparativo['Diferencia ($)'] = df_comparativo['Salario Nuevo'] - df_comparativo['salario_total']
-                df_comparativo['Crecimiento (%)'] = np.where(df_comparativo['salario_total'] > 0, (df_comparativo['Diferencia ($)'] / df_comparativo['salario_total']) * 100, 0)
-                
-                columnas_finales = ['Empleado', 'Cargo']
-                if col_antiguedad: columnas_finales.append('Años')
-                if has_base: columnas_finales.extend(['Salario Base', 'Horas Extras Fijas'])
-                columnas_finales.extend(['Salario Actual', 'Salario Nuevo', 'Diferencia ($)', 'Crecimiento (%)'])
-                
-                df_comparativo.columns = columnas_finales
-                
-                # Formateamos Años a 2 decimales si existe
-                if 'Años' in df_comparativo.columns:
-                    df_comparativo['Años'] = df_comparativo['Años'].round(2)
-                    
-                df_comparativo = df_comparativo.sort_values('Salario Nuevo', ascending=False).reset_index(drop=True)
-                
-                def highlight_selected(row):
-                    if row['Empleado'] == trabajador_seleccionado:
-                        return ['background-color: rgba(239, 68, 68, 0.2); color: white; font-weight: bold'] * len(row)
-                    return [''] * len(row)
-                    
-                formato_columnas = {
-                    'Salario Actual': '${:,.2f}',
-                    'Salario Nuevo': '${:,.2f}',
-                    'Diferencia ($)': '${:,.2f}',
-                    'Crecimiento (%)': '{:,.2f}%',
-                    'Años': '{:.2f}'
-                }
-                if has_base:
-                    formato_columnas['Salario Base'] = '${:,.2f}'
-                    formato_columnas['Horas Extras Fijas'] = '${:,.2f}'
-                    
-                st.dataframe(df_comparativo.style.apply(highlight_selected, axis=1).format(formato_columnas), use_container_width=True)
-                
-                st.markdown("#### 🤖 Diagnóstico Salarial Estratégico")
-                col_diag1, col_diag2 = st.columns(2)
-                with col_diag1:
-                    if metricas_comparativa_global:
-                        if analisis['salario_propuesto'] > metricas_comparativa_global['max']:
-                            st.error(f"⚠️ Alerta de Inequidad: El salario propuesto (USD {analisis['salario_propuesto']:,.2f}) superaría el máximo actual pagado en la comparativa (USD {metricas_comparativa_global['max']:,.2f}). Podría generar tensión interna.")
-                        elif analisis['salario_propuesto'] < metricas_comparativa_global['mediana']:
-                            st.success(f"✅ Viable en Equidad: El salario propuesto (USD {analisis['salario_propuesto']:,.2f}) se mantiene por debajo de la mediana comparativa (USD {metricas_comparativa_global['mediana']:,.2f}). Es un ajuste seguro.")
-                        else:
-                            st.info(f"ℹ️ Posicionamiento Competitivo: El salario propuesto se encuentra en el rango superior competitivo del mercado interno comparado.")
-                
-                with col_diag2:
-                    if compa_ratio_actual < 0.8:
-                        st.warning(f"⚠️ Alerta de Retención (Compa-Ratio: {compa_ratio_actual:.2f}): El empleado está subpagado con respecto a sus compañeros. Un aumento es recomendado para evitar fuga de talento.")
-                    elif compa_ratio_actual > 1.2:
-                        st.info(f"ℹ️ Alta Inversión (Compa-Ratio: {compa_ratio_actual:.2f}): El empleado está altamente compensado. Asegúrate de que su desempeño justifique este nivel.")
+            st.dataframe(df_comparativo.style.apply(highlight_selected, axis=1).format(formato_columnas), use_container_width=True)
+            
+            st.markdown("#### 🤖 Diagnóstico Salarial Estratégico")
+            col_diag1, col_diag2 = st.columns(2)
+            with col_diag1:
+                if metricas_comparativa_global:
+                    if analisis['salario_propuesto'] > metricas_comparativa_global['max']:
+                        st.error(f"⚠️ Alerta de Inequidad: El salario propuesto (USD {analisis['salario_propuesto']:,.2f}) superaría el máximo actual pagado en la comparativa (USD {metricas_comparativa_global['max']:,.2f}). Podría generar tensión interna.")
+                    elif analisis['salario_propuesto'] < metricas_comparativa_global['mediana']:
+                        st.success(f"✅ Viable en Equidad: El salario propuesto (USD {analisis['salario_propuesto']:,.2f}) se mantiene por debajo de la mediana comparativa (USD {metricas_comparativa_global['mediana']:,.2f}). Es un ajuste seguro.")
                     else:
-                        st.success(f"✅ Alineación de Mercado (Compa-Ratio: {compa_ratio_actual:.2f}): El salario del empleado es competitivo y está bien alineado.")
+                        st.info(f"ℹ️ Posicionamiento Competitivo: El salario propuesto se encuentra en el rango superior competitivo del mercado interno comparado.")
+            
+            with col_diag2:
+                if compa_ratio_actual < 0.8:
+                    st.warning(f"⚠️ Alerta de Retención (Compa-Ratio: {compa_ratio_actual:.2f}): El empleado está subpagado con respecto a sus compañeros. Un aumento es recomendado para evitar fuga de talento.")
+                elif compa_ratio_actual > 1.2:
+                    st.info(f"ℹ️ Alta Inversión (Compa-Ratio: {compa_ratio_actual:.2f}): El empleado está altamente compensado. Asegúrate de que su desempeño justifique este nivel.")
+                else:
+                    st.success(f"✅ Alineación de Mercado (Compa-Ratio: {compa_ratio_actual:.2f}): El salario del empleado es competitivo y está bien alineado.")
 
-                st.markdown("<hr style='border: 2px solid #00D2D3; margin: 50px 0;'>", unsafe_allow_html=True)
+            st.markdown("<hr style='border: 2px solid #00D2D3; margin: 50px 0;'>", unsafe_allow_html=True)
 
         # Dashboard Global removido según requerimiento
 
