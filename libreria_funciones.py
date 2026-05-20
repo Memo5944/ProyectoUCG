@@ -209,60 +209,58 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
         f'site:computrabajo.com.ec {cargo_base} ecuador'
     ]
     
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-    }
-
     todas_evidencias = []
     
-    for q in search_queries:
-        if len(todas_evidencias) >= 10: break
-        q_enc = urllib.parse.quote_plus(q)
-        url_ddg = f"https://html.duckduckgo.com/html/?q={q_enc}"
+    try:
+        from duckduckgo_search import DDGS
         
-        try:
-            resp = requests.get(url_ddg, headers=headers, timeout=5)
-            if resp.status_code == 200:
-                soup = BeautifulSoup(resp.text, 'html.parser')
-                results = soup.select(".result")
-                for res in results:
-                    title = res.select_one(".result__title").get_text() if res.select_one(".result__title") else ""
-                    snippet = res.select_one(".result__snippet").get_text() if res.select_one(".result__snippet") else ""
-                    link = res.select_one(".result__url").get_text(strip=True) if res.select_one(".result__url") else "web"
+        with DDGS() as ddgs:
+            for q in search_queries:
+                if len(todas_evidencias) >= 10: break
+                
+                try:
+                    # Traemos los primeros 5 resultados reales por cada query usando la API (Sin bloqueos)
+                    results = ddgs.text(q, max_results=5)
+                    if not results: continue
                     
-                    full_text = (title + " " + snippet).lower()
-                    
-                    # --- COMPONENTE RADAR BIDIRECCIONAL ---
-                    # Patrón: detecta números cerca de disparadores salariales en cualquier orden
-                    # Excluye años comunes (2023, 2024, 2025) para evitar falsos positivos
-                    regex_patrones = [
-                        r'(?:sueldo|salario|remuneración|pagamos|ofrece|usd|\$)\D*([\d\.,]{3,6})', # Palabra antes
-                        r'([\d\.,]{3,6})\D*(?:usd|dólares|mensuales|mensual)' # Palabra después
-                    ]
-                    
-                    for p in regex_patrones:
-                        matches = re.finditer(p, full_text)
-                        for m in matches:
-                            raw_val = m.group(1)
-                            # Limpieza total: solo dígitos
-                            clean_val = re.sub(r'[^\d]', '', raw_val)
-                            if clean_val:
-                                v = float(clean_val)
-                                # Lógica de filtrado de años y rangos locos
-                                if v in [2023, 2024, 2025]: continue
-                                if v > 15000: v /= 12
-                                
-                                if 425 <= v <= 10000: # Salario básico Ecuador como piso
-                                    portal = "Web / " + link.split('/')[0] if '/' in link else "Referencia"
-                                    if not any(abs(e['valor'] - v) < 5 for e in todas_evidencias):
-                                        todas_evidencias.append({
-                                            "empresa": portal,
-                                            "cargo_hallado": title[:60].strip() + "...",
-                                            "valor": round(v, 2),
-                                            "url": "https://" + link if not link.startswith("http") else link
-                                        })
-                    if len(todas_evidencias) >= 10: break
-        except: pass
+                    for res in results:
+                        title = res.get('title', '')
+                        snippet = res.get('body', '')
+                        link = res.get('href', 'web')
+                        
+                        full_text = (title + " " + snippet).lower()
+                        
+                        # --- COMPONENTE RADAR BIDIRECCIONAL ---
+                        # Patrón: detecta números cerca de disparadores salariales en cualquier orden
+                        regex_patrones = [
+                            r'(?:sueldo|salario|remuneración|pagamos|ofrece|usd|\$)\D*([\d\.,]{3,6})',
+                            r'([\d\.,]{3,6})\D*(?:usd|dólares|mensuales|mensual)'
+                        ]
+                        
+                        for p in regex_patrones:
+                            matches = re.finditer(p, full_text)
+                            for m in matches:
+                                raw_val = m.group(1)
+                                clean_val = re.sub(r'[^\d]', '', raw_val)
+                                if clean_val:
+                                    v = float(clean_val)
+                                    if v in [2023, 2024, 2025, 2026]: continue
+                                    if v > 15000: v /= 12
+                                    
+                                    if 425 <= v <= 10000: # Salario básico Ecuador como piso
+                                        portal = "Web / " + link.split('/')[2] if '://' in link else "Referencia"
+                                        if not any(abs(e['valor'] - v) < 5 for e in todas_evidencias):
+                                            todas_evidencias.append({
+                                                "empresa": portal,
+                                                "cargo_hallado": title[:60].strip() + "...",
+                                                "valor": round(v, 2),
+                                                "url": link
+                                            })
+                        if len(todas_evidencias) >= 10: break
+                except Exception:
+                    pass
+    except ImportError:
+        pass # Si falla por alguna razón instalar pip install duckduckgo-search
 
     # Estadísticas y Respuesta
     valores = [e['valor'] for e in todas_evidencias]
