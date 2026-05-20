@@ -8,19 +8,26 @@ def preparar_datos(df):
     # Normalizar nombres de columnas a minúsculas
     df.columns = [c.strip().lower() for c in df.columns]
     
-    # Calcular salario total si no existe
-    col_salario = next((c for c in df.columns if 'base' in c or 'salario' in c), None)
+    # Buscar específicamente el salario base para no confundirlo con el salario total
+    col_salario = next((c for c in df.columns if 'base' in c), None)
+    if not col_salario:
+        col_salario = next((c for c in df.columns if 'salario' in c and 'total' not in c), None)
+        
     if col_salario:
         df['salario_base_limpio'] = pd.to_numeric(df[col_salario], errors='coerce').fillna(0)
-        df['salario_total'] = df['salario_base_limpio'].copy()
-        df['total_horas_extras'] = 0.0
+    else:
+        df['salario_base_limpio'] = 0.0
+
+    df['total_horas_extras'] = 0.0
+    
+    # Sumar horas extras evitando columnas de "total" que ya vengan en el archivo
+    he_cols = [c for c in df.columns if ('he ' in c or 'hora' in c or 'extra' in c) and 'total' not in c and 'base' not in c and 'salario' not in c]
+    for col in he_cols:
+        val_he = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        df['total_horas_extras'] += val_he
         
-        # Sumar TODAS las horas extras (HE 25, 50, 100, etc.)
-        he_cols = [c for c in df.columns if 'he' in c or 'hora' in c or 'extra' in c]
-        for col in he_cols:
-            val_he = pd.to_numeric(df[col], errors='coerce').fillna(0)
-            df['total_horas_extras'] += val_he
-            df['salario_total'] += val_he
+    # Calcular salario total como Base + Horas Extras (siempre recalculamos para cuadrar)
+    df['salario_total'] = df['salario_base_limpio'] + df['total_horas_extras']
             
     # Convertir antigüedad a años si viene como fecha (dd/mm/aaaa) o datetime
     col_antiguedad = next((c for c in df.columns if 'antig' in c or 'año' in c or 'year' in c), None)
@@ -71,10 +78,9 @@ def evaluar_incremento_detallado(datos_empleado, porcentaje_incremento, porcenta
     salario_total_actual = float(datos_empleado.get('salario_total', 0))
     salario_base_actual = float(datos_empleado.get('salario_base_limpio', salario_total_actual))
     
-    # Extraer horas extras si existen
-    he_cols = [c for c in datos_empleado.index if 'he ' in str(c).lower() or 'hora' in str(c).lower() or 'extra' in str(c).lower()]
-    # Remover la columna totalizadora para evitar doble conteo
-    he_cols = [c for c in he_cols if c != 'total_horas_extras']
+    # Extraer horas extras evitando cualquier columna de 'total', 'salario' o 'base'
+    he_cols = [c for c in datos_empleado.index if ('he ' in str(c).lower() or 'hora' in str(c).lower() or 'extra' in str(c).lower())]
+    he_cols = [c for c in he_cols if 'total' not in str(c).lower() and 'salario' not in str(c).lower() and 'base' not in str(c).lower()]
     
     factor_incremento = 1 + (porcentaje_incremento / 100)
     
