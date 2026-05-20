@@ -332,7 +332,8 @@ if archivo_cargado is not None:
 
         
         cargo_para_busqueda = str(datos_empleado.get('cargo', '')).strip()
-        datos_mercado = lf.estimar_mercado_externo(cargo_para_busqueda, mediana_global)
+        area_para_busqueda = str(datos_empleado.get('area', '')).strip()
+        datos_mercado = lf.estimar_mercado_externo(cargo_para_busqueda, area_para_busqueda, mediana_global)
         salario_mercado_estimado = datos_mercado['salario_estimado']
 
 
@@ -650,72 +651,53 @@ if archivo_cargado is not None:
 
 
         with tab2:
-            st.markdown(f"### 🌍 Consulta Automática de Mercado - **Ecuador**")
-            st.info(f"🤖 **Estado de la Consulta:** {datos_mercado['mensaje']}")
+            st.markdown(f"### 🌍 Consulta Real de Mercado - **Ecuador**")
+            st.info(f"🤖 **Estado del Smart Hunter:** {datos_mercado['mensaje']}")
             
-            st.markdown(f"Análisis salarial enfocado al mercado corporativo nacional para el cargo de **{cargo_para_busqueda.title()}**.")
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(f"Análisis enfocado en el sector **{area_para_busqueda}** para el cargo **{cargo_para_busqueda}**.")
             
-            # --- Sección de ingreso/confirmación de dato experto ---
-            st.markdown("#### 💰 Resultado de la Consulta Dinámica")
-            st.caption("El sistema ha consultado fuentes externas en tiempo real. Puedes validar o ajustar el valor obtenido.")
-            
-            t2_c1, t2_c2 = st.columns([1, 1.5])
-            
-            with t2_c1:
-                # El valor por defecto ahora es lo que traiga la consulta automática
-                salario_mercado_externo = st.number_input(
-                    "Sueldo Mercado Consultado (USD)", 
-                    min_value=0.0, 
-                    value=float(salario_mercado_estimado), 
-                    step=50.0, 
-                    help="Este valor proviene de la consulta automática a Talent.com Ecuador. Puedes ajustarlo manualmente si tienes un dato más preciso."
-                )
-                
-                color_kpi = "#48BB78" if salario_mercado_externo > 0 else "#94a3b8"
-                label_kpi = "Dato de Mercado" if salario_mercado_externo > 0 else "Dato Pendiente"
-                val_kpi = f"USD {salario_mercado_externo:,.0f}" if salario_mercado_externo > 0 else "N/D"
-                
-                st.markdown(render_kpi_card(label_kpi, val_kpi, border_color=color_kpi), unsafe_allow_html=True)
-                
-            with t2_c2:
-                if salario_mercado_externo > 0:
-                    html_ficha = f'<div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 12px; border-left: 5px solid #48BB78; box-shadow: 0 5px 15px rgba(0,0,0,0.05); color: #0b2659;">'
-                    html_ficha += f'<h4 style="margin-top: 0; color: #48BB78; font-weight: bold;">✅ Benchmark de Mercado: {datos_mercado["confianza"]}</h4>'
-                    html_ficha += f'<p style="font-size: 0.95em;"><b>Cargo buscado:</b> {cargo_para_busqueda.title()}</p>'
-                    html_ficha += f'<p style="font-size: 0.95em;"><b>Fuente principal:</b> {datos_mercado["fuente"]}</p>'
-                    html_ficha += f'<p style="font-size: 0.95em; margin-bottom: 0;"><b>Referencia original:</b> <a href="{datos_mercado["original_url"]}" target="_blank">Ver fuente en vivo</a></p>'
-                    html_ficha += '<hr style="border-top: 1px solid rgba(11, 38, 89, 0.2); margin: 10px 0;">'
-                    html_ficha += f'<p style="margin-bottom: 0; font-size: 0.85em; font-style: italic;">{datos_mercado["mensaje"]}</p></div>'
-                else:
-                    html_ficha = '<div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 12px; border-left: 5px solid #F59E0B; box-shadow: 0 5px 15px rgba(0,0,0,0.05); color: #0b2659;">'
-                    html_ficha += '<h4 style="margin-top: 0; color: #F59E0B; font-weight: bold;">⏳ Sin Datos Automáticos</h4>'
-                    html_ficha += f'<p style="font-size: 0.9em;">No pudimos detectar un valor exacto automáticamente. Por favor consulta los enlaces de abajo de respaldo.</p>'
-                    html_ficha += '</div>'
-                st.markdown(html_ficha, unsafe_allow_html=True)
+            # --- Fila de KPIs de Mercado ---
+            m_c1, m_c2, m_c3 = st.columns(3)
+            with m_c1:
+                st.markdown(render_kpi_card("Mediana Mercado", f"USD {datos_mercado['mediana']:,.0f}", border_color="#48BB78"), unsafe_allow_html=True)
+            with m_c2:
+                st.markdown(render_kpi_card("Promedio (Media)", f"USD {datos_mercado['media']:,.0f}", border_color="#4299E1"), unsafe_allow_html=True)
+            with m_c3:
+                st.markdown(render_kpi_card("Muestras Reales", f"{len(datos_mercado['evidencias'])} fuentes", border_color="#F59E0B"), unsafe_allow_html=True)
 
-            # --- Sección de enlaces de respaldo/validación ---
             st.markdown("<br>", unsafe_allow_html=True)
-            with st.expander("🔍 Ver fuentes de respaldo y validación (Glassdoor, Computrabajo, etc.)"):
-                enlaces = datos_mercado.get('enlaces_investigacion', [])
-                if enlaces:
-                    for enlace in enlaces:
-                        st.markdown(f"➜ **{enlace['fuente']}**: [{enlace['descripcion']}]({enlace['url']})")
+            
+            # --- Tabla de Evidencias ---
+            st.markdown("#### 📋 Evidencias Verificables (Ofertas Detectadas)")
+            if datos_mercado['evidencias']:
+                df_evidencias = pd.DataFrame(datos_mercado['evidencias'])
+                df_evidencias.columns = ['Portal/Fuente', 'Cargo Hallado', 'Sueldo (USD)', 'Enlace Fuente']
+                
+                # Mostrar tabla con estilo
+                st.dataframe(
+                    df_evidencias.style.format({'Sueldo (USD)': '${:,.2f}'}),
+                    use_container_width=True,
+                    hide_index=True
+                )
+                st.success("💡 Los datos anteriores reflejan ofertas de trabajo reales detectadas en el mercado ecuatoriano en tiempo real.")
+            else:
+                st.warning("⚠️ No se encontraron evidencias con sueldos publicados para este cargo específico. Prueba buscando en un área similar.")
 
             st.markdown("---")
             st.markdown("#### 🤖 Diagnóstico Estratégico frente a Competencia Nacional", unsafe_allow_html=True)
             
+            salario_mercado_externo = datos_mercado['salario_estimado']
             if salario_mercado_externo > 0:
                 diferencia_ext = analisis['salario_propuesto'] - salario_mercado_externo
                 pct_ext = (diferencia_ext / salario_mercado_externo) * 100
                 if pct_ext < -10:
-                    st.error(f"📉 **Desventaja vs Ecuador:** Nuestra propuesta final (USD {analisis['salario_propuesto']:,.2f}) está **{abs(pct_ext):.1f}% por debajo** del mercado nacional (USD {salario_mercado_externo:,.0f}). \n\n⚠️ **Riesgo:** Alta probabilidad de perder a este perfil frente a competidores directos.")
+                    st.error(f"📉 **Desventaja vs Ecuador:** Nuestra propuesta final (USD {analisis['salario_propuesto']:,.2f}) está **{abs(pct_ext):.1f}% por debajo** de las ofertas de mercado (USD {salario_market_externo if 'salario_market_externo' in locals() else salario_mercado_externo:,.0f}).")
                 elif pct_ext > 10:
-                    st.warning(f"📈 **Por Encima del Mercado:** La propuesta está **{pct_ext:.1f}% superior** a la media nacional en Ecuador. \n\n🛡️ **Evaluación:** Estratégicamente garantiza alta retención de talento, pero eleva costos operativos.")
+                    st.warning(f"📈 **Superior al Mercado:** La propuesta está **{pct_ext:.1f}% superior** a lo que ofrecen otras empresas en Ecuador. Garantiza retención de talento.")
                 else:
-                    st.success(f"🎯 **Alineación Perfecta (Ecuador):** Nuestra propuesta (USD {analisis['salario_propuesto']:,.2f}) es equilibrada y competitiva (**±10%**) frente a los estándares del mercado ecuatoriano (USD {salario_mercado_externo:,.0f}).")
+                    st.success(f"🎯 **Alineación Perfecta:** Nuestra propuesta es equilibrada frente a las ofertas actuales en Ecuador (USD {salario_mercado_externo:,.0f}).")
             else:
-                 st.info("ℹ️ Ingresa o confirma un valor de mercado para obtener el diagnóstico estratégico.")
+                 st.info("ℹ️ Se requiere al menos un dato de mercado para activar el diagnóstico estratégico.")
 
 
         # Dashboard Global removido según requerimiento

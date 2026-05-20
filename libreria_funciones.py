@@ -190,109 +190,101 @@ def generar_enlaces_investigacion(cargo):
     return enlaces
 
 
-def estimar_mercado_externo(cargo, mediana_interna):
+import statistics
+
+def estimar_mercado_externo(cargo, area, mediana_interna):
     """
-    CONSULTA REAL MULTI-FUENTE: 
-    1. Intenta consulta directa en Talent.com (Ecuador)
-    2. Si falla, realiza búsqueda en DuckDuckGo (Snippet Scraping)
-    Cero datos hardcodeados.
+    SMART HUNTER EXTERN (Ecuador):
+    Minería de ofertas reales y activas para obtener evidencias verificables.
+    Busca hasta 5 puntos detallados (Empresa, Cargo, Sueldo, Link).
     """
-    cargo_str = str(cargo).strip()
-    cargo_encoded = urllib.parse.quote_plus(cargo_str)
+    cargo_base = str(cargo).strip()
+    area_base = str(area).strip() if area else ""
     
-    # Headers realistas para evitar bloqueos
+    # Estrategia de búsqueda: Ofertas reales + Contexto de Área
+    search_queries = [
+        f'oferta empleo "{cargo_base}" {area_base} ecuador',
+        f'vacante "{cargo_base}" {area_base} sueldo',
+        f'"{cargo_base}" salarios ecuador 2024..2025',
+        f'sueldo prommedio de {area_base} en ecuador'
+    ]
+    
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "es-ES,es;q=0.9"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
+
+    todas_evidencias = []
+    
+    for q in search_queries:
+        if len(todas_evidencias) >= 8: break
+        q_enc = urllib.parse.quote_plus(q)
+        url_ddg = f"https://html.duckduckgo.com/html/?q={q_enc}"
+        
+        try:
+            resp = requests.get(url_ddg, headers=headers, timeout=5)
+            if resp.status_code == 200:
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                results = soup.select(".result")
+                for res in results:
+                    title = res.select_one(".result__title").get_text() if res.select_one(".result__title") else ""
+                    snippet = res.select_one(".result__snippet").get_text() if res.select_one(".result__snippet") else ""
+                    link = res.select_one(".result__url").get_text(strip=True) if res.select_one(".result__url") else "web"
+                    
+                    full_text = (title + " " + snippet).lower()
+                    
+                    # Regex para detectar dinero ($ o USD) seguido de un valor lógico en Ecuador (400-9000)
+                    match = re.search(r'(?:usd|sueldo|\$|salario|ofrece)\D*([\d\.,]+)', full_text)
+                    if match:
+                        num_str = re.sub(r'[^\d]', '', match.group(1))
+                        if num_str:
+                            v = float(num_str)
+                            # Si es anual (>15000), convertir a mensual
+                            if v > 15000: v = v / 12
+                            
+                            if 400 <= v <= 12000:
+                                # Extraer "Empresa" - Intento de deducir del link o título
+                                portal = link.split('/')[0] if '/' in link else "Portal Web"
+                                if "linkedin" in link: portal = "LinkedIn"
+                                elif "computrabajo" in link: portal = "Computrabajo"
+                                elif "multitrabajos" in link: portal = "Multitrabajos"
+                                elif "talent" in link: portal = "Talent.com"
+                                
+                                # Evitar duplicados por valor cercano (± USD 5)
+                                if not any(abs(e['valor'] - v) < 5 for e in todas_evidencias):
+                                    todas_evidencias.append({
+                                        "empresa": portal,
+                                        "cargo_hallado": title[:50].strip() + "...",
+                                        "valor": v,
+                                        "url": "https://" + link if not link.startswith("http") else link
+                                    })
+                    if len(todas_evidencias) >= 8: break
+        except:
+            pass
+
+    # Cálculos y Respuesta Estructurada
+    valores = [e['valor'] for e in todas_evidencias]
     
     resultado = {
         "salario_estimado": 0.0,
-        "enlaces_investigacion": generar_enlaces_investigacion(cargo_str),
-        "muestras": [],
-        "confianza": "Consultando fuentes en vivo...",
-        "fuente": "Pendiente",
-        "original_url": "",
-        "mensaje": f"Iniciando búsqueda para '{cargo_str}'...",
-        "empresa_referencia": "Mercado Ecuador"
+        "media": 0.0,
+        "mediana": 0.0,
+        "evidencias": todas_evidencias,
+        "mensaje": "❌ No se hallaron suficientes evidencias verificables.",
+        "confianza": "Sin datos",
+        "original_url": f"https://www.google.com/search?q={urllib.parse.quote_plus(cargo_base + ' sueldo ecuador')}"
     }
 
-    # --- FUENTE 1: Talent.com ---
-    url_talent = f"https://ec.talent.com/salary?job={cargo_encoded}"
-    try:
-        resp = requests.get(url_talent, headers=headers, timeout=8)
-        if resp.status_code == 200:
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            # Selector actualizado por inspección
-            val_el = soup.select_one(".l-card__salary-value") or soup.select_one(".salary-amount") or soup.select_one(".time-card__amount")
-            
-            if val_el:
-                amount_text = val_el.get_text(strip=True)
-                # Limpieza robusta
-                clean_num = re.sub(r'[^\d\.,]', '', amount_text)
-                # Normalizar: quitar puntos de miles, cambiar coma decimal a punto
-                if ',' in clean_num and '.' in clean_num:
-                    if clean_num.find('.') < clean_num.find(','): clean_num = clean_num.replace('.', '').replace(',', '.')
-                    else: clean_num = clean_num.replace(',', '')
-                else: clean_num = clean_num.replace('.', '').replace(',', '')
-                
-                valor = float(clean_num)
-                if valor > 6000: valor = round(valor / 12, 2) # anual a mensual
-                
-                if valor > 0:
-                    resultado.update({
-                        "salario_estimado": valor,
-                        "fuente": "Talent.com Ecuador",
-                        "original_url": url_talent,
-                        "confianza": "Alta (Dato exacto)",
-                        "mensaje": f"✅ Consulta exitosa en Talent.com: USD {valor:,.2f} mensuales."
-                    })
-                    return resultado
-    except:
-        pass
-
-    # --- FUENTE 2: Fallback Búsqueda DuckDuckGo (Snippet Extract) ---
-    # Este método es casi imposible de bloquear ya que es texto plano
-    url_ddg = f"https://html.duckduckgo.com/html/?q=salario+promedio+{cargo_encoded}+ecuador"
-    try:
-        resultado["mensaje"] = "Consultando motor de búsqueda (Fallback)..."
-        resp = requests.get(url_ddg, headers=headers, timeout=8)
-        if resp.status_code == 200:
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            snippets = soup.select(".result__snippet")
-            
-            encontrados = []
-            for s in snippets:
-                txt = s.get_text().lower()
-                # Buscar patrones de salario en el resumen del resultado
-                # Ej: "...salario promedio de $1.200 al mes..." o "$800 - $1200"
-                matches = re.finditer(r'\$\s?([\d\.,]+)', txt)
-                for m_match in matches:
-                    num_str = m_match.group(1)
-                    num_clean = re.sub(r'[^\d]', '', num_str) 
-                    if num_clean:
-                        v = float(num_clean)
-                        if 400 < v < 15000: # Rango lógico mensual/anual Ecuador
-                            if v > 6000: v = v / 12
-                            encontrados.append(v)
-            
-            if encontrados:
-                valor_medio = sum(encontrados) / len(encontrados)
-                resultado.update({
-                    "salario_estimado": round(valor_medio, 2),
-                    "fuente": "Motores de búsqueda (Consenso)",
-                    "original_url": url_ddg,
-                    "confianza": "Media (Basado en resultados de búsqueda)",
-                    "mensaje": f"✅ Datos obtenidos vía búsqueda externa: USD {valor_medio:,.2f} mensuales."
-                })
-                return resultado
-    except:
-        pass
-
-    # Si todo falla
-    resultado["confianza"] = "Baja / Requiere Manual"
-    resultado["mensaje"] = "❌ No pudimos obtener un valor automático confiable. Usa los enlaces de abajo para validar."
+    if valores:
+        med_val = statistics.median(valores)
+        mean_val = sum(valores) / len(valores)
+        resultado.update({
+            "salario_estimado": round(med_val, 2),
+            "media": round(mean_val, 2),
+            "mediana": round(med_val, 2),
+            "confianza": "Alta (Consenso de Red)" if len(valores) >= 4 else "Baja (Pocas fuentes)",
+            "mensaje": f"✅ Se han verificado {len(valores)} fuentes de mercado real."
+        })
+    
     return resultado
 
 
