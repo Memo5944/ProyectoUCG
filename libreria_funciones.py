@@ -151,197 +151,68 @@ def calcular_compa_ratio(salario_total, mediana_cargo):
         return 1.0
     return salario_total / mediana_cargo
 
-import statistics
+import urllib.parse
 
-def _generar_url_consulta(empresa, fuente='glassdoor'):
+def generar_enlaces_investigacion(cargo):
     """
-    Genera una URL funcional de consulta/búsqueda para la empresa en la fuente indicada.
-    Así el usuario puede ver información real al hacer clic.
+    Genera enlaces de búsqueda REALES en fuentes confiables del mercado laboral
+    ecuatoriano para que el usuario investigue datos salariales verdaderos.
+    NO contiene datos inventados ni estimaciones.
     """
-    import urllib.parse
-    empresa_limpia = str(empresa).strip()
-    empresa_encoded = urllib.parse.quote_plus(empresa_limpia)
+    cargo_limpio = str(cargo).strip()
+    cargo_encoded = urllib.parse.quote_plus(cargo_limpio)
     
-    if fuente == 'computrabajo':
-        return f'https://www.computrabajo.com.ec/empresas/{empresa_encoded}'
-    elif fuente == 'hireline':
-        return f'https://hireline.io/ec/empresas?search={empresa_encoded}'
-    else:  # glassdoor por defecto
-        return f'https://www.glassdoor.com/Search/results.htm?keyword={empresa_encoded}&locId=2300003&locType=N&locName=Ecuador'
+    enlaces = [
+        {
+            'fuente': 'Glassdoor',
+            'descripcion': 'Salarios reportados por empleados reales',
+            'url': f'https://www.glassdoor.com/Search/results.htm?keyword={cargo_encoded}+Ecuador'
+        },
+        {
+            'fuente': 'Computrabajo Ecuador',
+            'descripcion': 'Ofertas laborales activas con rangos salariales',
+            'url': f'https://www.computrabajo.com.ec/trabajo-de-{urllib.parse.quote_plus(cargo_limpio.lower().replace(" ", "-"))}'
+        },
+        {
+            'fuente': 'Indeed Ecuador',
+            'descripcion': 'Salarios y ofertas del mercado ecuatoriano',
+            'url': f'https://ec.indeed.com/jobs?q={cargo_encoded}&l=Ecuador'
+        },
+        {
+            'fuente': 'LinkedIn Salary',
+            'descripcion': 'Insights salariales de profesionales verificados',
+            'url': f'https://www.linkedin.com/salary/search?keywords={cargo_encoded}&countryCode=ec'
+        },
+        {
+            'fuente': 'Google Search (Encuestas Salariales EC)',
+            'descripcion': 'Estudios y encuestas salariales publicadas en Ecuador',
+            'url': f'https://www.google.com/search?q=encuesta+salarial+{cargo_encoded}+Ecuador+2025+2026'
+        }
+    ]
+    
+    return enlaces
 
 
 def estimar_mercado_externo(cargo, mediana_interna):
     """
-    Motor avanzado de estimación basado en múltiples fuentes comprobables (Ecuador).
-    Obtiene exactamente 5 datos si es posible, saca el promedio/mediana y provee URLs.
+    Retorna estructura para el mercado externo SIN datos inventados.
+    El salario_estimado se inicializa en 0 para que el usuario ingrese
+    el dato REAL que investigó en las fuentes proporcionadas.
     """
-    cargo_str = str(cargo).lower().strip()
+    cargo_str = str(cargo).strip()
+    enlaces = generar_enlaces_investigacion(cargo_str)
     
-    # Base de datos rígida con 5 muestras exactas por perfil
-    # Las URLs se generan dinámicamente con _generar_url_consulta para asegurar enlaces funcionales
-    db_ecuador = {
-        'director': {
-            'muestras': [
-                {'empresa': 'Pronaca S.A.', 'salario': 5200, 'fuente': 'glassdoor'},
-                {'empresa': 'Corporación Favorita', 'salario': 5500, 'fuente': 'glassdoor'},
-                {'empresa': 'Holcim Ecuador', 'salario': 6000, 'fuente': 'glassdoor'},
-                {'empresa': 'Banco Pichincha', 'salario': 4800, 'fuente': 'glassdoor'},
-                {'empresa': 'Cervecería Nacional', 'salario': 5100, 'fuente': 'glassdoor'}
-            ],
-            'mensaje': 'Posición Directiva C-Level o Reporte Directo.'
-        },
-        'gerente': {
-            'muestras': [
-                {'empresa': 'Banco Guayaquil', 'salario': 3100, 'fuente': 'glassdoor'},
-                {'empresa': 'KFC (Int Food Services)', 'salario': 2900, 'fuente': 'glassdoor'},
-                {'empresa': 'Tia S.A.', 'salario': 2800, 'fuente': 'computrabajo'},
-                {'empresa': 'Telefónica Movistar', 'salario': 3400, 'fuente': 'glassdoor'},
-                {'empresa': 'Dinadec', 'salario': 3200, 'fuente': 'glassdoor'}
-            ],
-            'mensaje': 'Posición: Gerencia Media / Jefatura Zonal Regional.'
-        },
-        'jefe': {
-            'muestras': [
-                {'empresa': 'Nestlé Ecuador', 'salario': 2200, 'fuente': 'glassdoor'},
-                {'empresa': 'De Prati', 'salario': 1900, 'fuente': 'glassdoor'},
-                {'empresa': 'Arca Continental', 'salario': 2100, 'fuente': 'glassdoor'},
-                {'empresa': 'Banco del Pacífico', 'salario': 2050, 'fuente': 'glassdoor'},
-                {'empresa': 'Kruger Corp', 'salario': 2300, 'fuente': 'hireline'}
-            ],
-            'mensaje': 'Posición: Responsable de Departamento/Área Local.'
-        },
-        'analista financiero': {
-            'muestras': [
-                {'empresa': 'Produbanco', 'salario': 1250, 'fuente': 'glassdoor'},
-                {'empresa': 'Diners Club Ecuador', 'salario': 1300, 'fuente': 'glassdoor'},
-                {'empresa': 'Banco Bolivariano', 'salario': 1180, 'fuente': 'glassdoor'},
-                {'empresa': 'Banco Solidario', 'salario': 1150, 'fuente': 'glassdoor'},
-                {'empresa': 'Mutualista Pichincha', 'salario': 1100, 'fuente': 'glassdoor'}
-            ],
-            'mensaje': 'Posición: Analista Financiero Senior.'
-        },
-        'analista': {
-            'muestras': [
-                {'empresa': 'Supermaxi / Megamaxi', 'salario': 1050, 'fuente': 'glassdoor'},
-                {'empresa': 'Claro (Conecel)', 'salario': 1150, 'fuente': 'glassdoor'},
-                {'empresa': 'Netlife', 'salario': 980, 'fuente': 'glassdoor'},
-                {'empresa': 'La Fabril', 'salario': 1000, 'fuente': 'glassdoor'},
-                {'empresa': 'Grupo Vilaseca', 'salario': 1100, 'fuente': 'glassdoor'}
-            ],
-            'mensaje': 'Posición: Analista General (Data/Comercial).'
-        },
-        'desarrollador': {
-            'muestras': [
-                {'empresa': 'Kushki', 'salario': 2200, 'fuente': 'hireline'},
-                {'empresa': 'Kruger Corp', 'salario': 1800, 'fuente': 'hireline'},
-                {'empresa': 'Cobiscorp', 'salario': 1700, 'fuente': 'glassdoor'},
-                {'empresa': 'TiendaMia.com', 'salario': 2100, 'fuente': 'glassdoor'},
-                {'empresa': 'StackBuilders', 'salario': 2300, 'fuente': 'glassdoor'}
-            ],
-            'mensaje': 'Posición: Desarrollador Backend Mid-Senior remoto y on-site.'
-        },
-        'operador': {
-            'muestras': [
-                {'empresa': 'Holcim Operaciones', 'salario': 720, 'fuente': 'glassdoor'},
-                {'empresa': 'Tonicorp', 'salario': 680, 'fuente': 'computrabajo'},
-                {'empresa': 'Industrias Ales', 'salario': 640, 'fuente': 'computrabajo'},
-                {'empresa': 'Plásticos Global', 'salario': 600, 'fuente': 'computrabajo'},
-                {'empresa': 'Novacero', 'salario': 700, 'fuente': 'glassdoor'}
-            ],
-            'mensaje': 'Posición: Operador de Máquina / Planta Industrial.'
-        }
-    }
-    
-    # Generic generator based on keywords if exact match not deeply modeled
-    generic_roles = {
-        'supervisor': 1300, 'consultor': 1800, 'especialista': 1900, 
-        'ingeniero': 1600, 'auditor': 1400, 'contador': 1100,
-        'recursos humanos': 1200, 'tecnico': 850, 'vendedor': 700, 
-        'asistente': 550, 'auxiliar': 480
-    }
-    
-    def _preparar_muestras(muestras_raw):
-        """Convierte las muestras del db_ecuador a formato final con URLs funcionales."""
-        resultado = []
-        for m in muestras_raw:
-            resultado.append({
-                'empresa': m['empresa'],
-                'salario': m['salario'],
-                'url': _generar_url_consulta(m['empresa'], m.get('fuente', 'glassdoor'))
-            })
-        return resultado
-    
-    match_data = None
-    selected_key = None
-    for key, data in db_ecuador.items():
-        if key in cargo_str:
-            match_data = data
-            selected_key = key
-            break
-            
-    if match_data:
-        # Calcular estadisticas
-        muestras_finales = _preparar_muestras(match_data['muestras'])
-        salarios = [m['salario'] for m in muestras_finales]
-        mediana_mercado = statistics.median(salarios)
-        promedio_mercado = statistics.mean(salarios)
-        return {
-            'salario_estimado': float(promedio_mercado), # Se pide promedio
-            'muestras': muestras_finales,
-            'confianza': 'Alta (5 Datos Auditados)',
-            'fuente': 'Multi-Fuente (Links en el detalle)',
-            'mensaje': match_data['mensaje'],
-            'empresa_referencia': muestras_finales[0]['empresa']
-        }
-        
-    for key, val in generic_roles.items():
-        if key in cargo_str:
-            import random
-            random.seed(len(key))
-            # Create a synthetic 5-point distribution around the base value
-            muestras = []
-            empresas_gen = ['Empresa Top Local', 'Multinacional Zona Ecuador', 'Empresa Mediana', 'Competidor Directo', 'Líder Sectorial']
-            for i in range(5):
-                var_sal = val * random.uniform(0.9, 1.15)
-                muestras.append({
-                    'empresa': empresas_gen[i],
-                    'salario': var_sal,
-                    'url': _generar_url_consulta(empresas_gen[i], 'glassdoor')
-                })
-            salarios = [m['salario'] for m in muestras]
-            return {
-                'salario_estimado': float(statistics.mean(salarios)),
-                'muestras': muestras,
-                'confianza': 'Media (Estimacion Basada en Big Data)',
-                'fuente': 'Computrabajo / Glassdoor Data Model',
-                'mensaje': f'Posición: {key.title()} en el mercado general ecuatoriano.',
-                'empresa_referencia': empresas_gen[0]
-            }
-        
-    # Fallback
-    if mediana_interna and mediana_interna > 0:
-        base = mediana_interna * 1.15
-        muestras = [
-            {'empresa': 'Proyección Estadística P1', 'salario': base, 'url': '#'},
-            {'empresa': 'Proyección Estadística P2', 'salario': base*1.05, 'url': '#'},
-            {'empresa': 'Proyección Estadística P3', 'salario': base*0.95, 'url': '#'},
-            {'empresa': 'Proyección Estadística P4', 'salario': base*1.10, 'url': '#'},
-            {'empresa': 'Proyección Estadística P5', 'salario': base*0.90, 'url': '#'}
-        ]
-        return {
-            'salario_estimado': float(base),
-            'muestras': muestras,
-            'confianza': 'Proyección Estadística Interna',
-            'fuente': 'Estimador Algoritmico',
-            'mensaje': 'ADVERTENCIA: Cargo no hallado. Calculado como Mediana Interna + 15%.',
-            'empresa_referencia': 'Estimación Interna'
-        }
-        
     return {
         'salario_estimado': 0.0,
+        'enlaces_investigacion': enlaces,
         'muestras': [],
-        'confianza': 'Nula',
-        'fuente': 'N/A',
-        'mensaje': 'Falta investigación.',
-        'empresa_referencia': 'N/A'
+        'confianza': 'Pendiente — Requiere datos reales del usuario',
+        'fuente': 'Investigación manual en fuentes verificadas',
+        'mensaje': (
+            f'Investiga el salario real del cargo "{cargo_str}" en Ecuador '
+            f'usando los enlaces proporcionados. Ingresa el valor encontrado '
+            f'en el campo "Sueldo Promedio Mercado (USD)" para obtener un '
+            f'diagnóstico basado en datos reales.'
+        ),
+        'empresa_referencia': 'Dato pendiente de investigación'
     }
