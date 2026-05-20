@@ -200,13 +200,13 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     cargo_base = str(cargo).strip()
     area_base = str(area).strip() if area else ""
     
-    # Queries diversificadas
+    # Queries diversificadas y MÁS FLEXIBLES (sin comillas exactas)
     search_queries = [
-        f'oferta laboral "{cargo_base}" {area_base} ecuador',
-        f'"{cargo_base}" sueldo mensual ecuador',
-        f'site:computrabajo.com.ec "{cargo_base}"',
-        f'vacantes para "{cargo_base}" ecuador $',
-        f'remuneración promedio "{cargo_base}" ecuador'
+        f'sueldo {cargo_base} ecuador',
+        f'cuanto gana un {cargo_base} en ecuador',
+        f'salario promedio {cargo_base} ecuador',
+        f'ofertas empleo {cargo_base} ecuador salario',
+        f'site:computrabajo.com.ec {cargo_base} ecuador'
     ]
     
     headers = {
