@@ -301,6 +301,88 @@ def _calcular_score_evidencia(valor, titulo, snippet, cargo_base):
     return score
 
 
+def _buscar_ofertas_computrabajo(cargo, area="", max_resultados=12):
+    """
+    Obtiene ofertas reales de Computrabajo Ecuador y prioriza vacantes
+    que publiquen salario explícito. Retorna evidencias listas para tablero.
+    """
+    cargo_slug = urllib.parse.quote_plus(str(cargo).strip().lower().replace(' ', '-'))
+    area_txt = str(area).strip().lower()
+    area_slug = urllib.parse.quote_plus(area_txt.replace(' ', '-')) if area_txt else ""
+
+    rutas = [
+        f"https://www.computrabajo.com.ec/trabajo-de-{cargo_slug}",
+        f"https://www.computrabajo.com.ec/ofertas-de-trabajo/?q={urllib.parse.quote_plus(str(cargo).strip())}",
+    ]
+    if area_slug:
+        rutas.append(f"https://www.computrabajo.com.ec/trabajo-en-{area_slug}/de-{cargo_slug}")
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    }
+
+    evidencias = []
+    for url in rutas:
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                continue
+            soup = BeautifulSoup(resp.text, 'html.parser')
+
+            cards = soup.select('article, div.bRS.bClick, div.js-o-link, div.box_offer')
+            if not cards:
+                cards = soup.select('a[href*="/ofertas-de-trabajo/"]')
+
+            for card in cards:
+                txt = card.get_text(' ', strip=True)
+                if not txt:
+                    continue
+
+                match = re.search(r'(?:usd|\$)\s*([\d\.,]{3,8})|([\d\.,]{3,8})\s*(?:usd|d[oó]lares)', txt.lower())
+                if not match:
+                    continue
+
+                raw = next((g for g in match.groups() if g), None)
+                if not raw:
+                    continue
+                v = float(re.sub(r'[^\d]', '', raw) or 0)
+                if v > 5000:
+                    v = v / 12
+                if not (350 <= v <= 10000):
+                    continue
+
+                a = card.select_one('a[href]') or card if card.name == 'a' else None
+                href = a.get('href', '') if a else ''
+                if href and href.startswith('/'):
+                    href = 'https://www.computrabajo.com.ec' + href
+                if 'computrabajo.com.ec' not in href:
+                    continue
+
+                titulo_el = card.select_one('h2, h3, .js-o-link')
+                titulo = titulo_el.get_text(' ', strip=True) if titulo_el else txt[:110]
+
+                contexto = re.sub(r'\s+', ' ', txt)
+                if len(contexto) > 220:
+                    contexto = contexto[:220] + '...'
+
+                if not any(abs(e['valor'] - v) < 5 and e['url'] == href for e in evidencias):
+                    evidencias.append({
+                        'empresa': 'Computrabajo Ecuador',
+                        'cargo_hallado': titulo,
+                        'valor': round(v, 2),
+                        'url': href,
+                        'score_confianza': 95,
+                        'contexto_salario': contexto,
+                    })
+
+                if len(evidencias) >= max_resultados:
+                    return evidencias
+        except Exception:
+            continue
+
+    return evidencias
+
+
 def estimar_mercado_externo(cargo, area, mediana_interna):
     """
     SMART HUNTER EXTERN v2.1 (Ecuador):
@@ -340,7 +422,7 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
     }
 
-    todas_evidencias = []
+    todas_evidencias = _buscar_ofertas_computrabajo(cargo_base, area_base, max_resultados=12)
     
     for q in search_queries:
         if len(todas_evidencias) >= 20: break  # Buscar más resultados con queries específicas
@@ -450,7 +532,8 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     
     # Remover score_confianza antes de retornar (campo interno)
     for ev in todas_evidencias:
-        del ev['score_confianza']
+        ev.pop('score_confianza', None)
+        ev.setdefault('contexto_salario', '')
     
     # Estadísticas y Respuesta
     valores = [e['valor'] for e in todas_evidencias]
@@ -469,7 +552,7 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
             "media": round(media_val, 2),
             "mediana": round(m_val, 2),
             "confianza": "Validada por Red" if len(valores) >= 3 else "Referencial",
-            "mensaje": f"✅ Éxito: {len(valores)} evidencias encontradas y priorizadas por contexto."
+            "mensaje": f"✅ Éxito: {len(valores)} evidencias encontradas (incluye ofertas directas de Computrabajo con salario publicado)."
         })
     
     return resultado

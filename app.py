@@ -671,7 +671,7 @@ if archivo_cargado is not None:
             st.markdown("#### 📋 Evidencias Verificables (Ofertas Detectadas)")
             if datos_mercado['evidencias']:
                 df_evidencias = pd.DataFrame(datos_mercado['evidencias'])
-                df_evidencias.columns = ['Portal/Fuente', 'Cargo Hallado', 'Sueldo (USD)', 'Enlace Fuente']
+                df_evidencias.columns = ['Portal/Fuente', 'Cargo Hallado', 'Sueldo (USD)', 'Enlace Fuente', 'Evidencia de Salario']
                 
                 # Mostrar tabla interactiva (links y moneda)
                 st.dataframe(
@@ -685,7 +685,10 @@ if archivo_cargado is not None:
                         ),
                         'Enlace Fuente': st.column_config.LinkColumn(
                             "Enlace Directo",
-                            display_text="Ver Oferta 🔗"
+                            display_text="Ver oferta y salario 🔗"
+                        ),
+                        'Evidencia de Salario': st.column_config.TextColumn(
+                            "Texto donde se detectó el sueldo"
                         )
                     }
                 )
