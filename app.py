@@ -16,22 +16,36 @@ st.set_page_config(
 # Estilo CSS personalizado para un look "Premium" (Glassmorphism & Neon Shadows)
 st.markdown("""
     <style>
-    /* Fondo llamativo premium (Deep Ocean Gradient) */
+    /* Fondo corporativo Sudinco (Azul Marino Profundo) */
     .stApp {
-        background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
+        background: linear-gradient(135deg, #0b2659 0%, #061530 100%);
     }
     .main {
         background: transparent;
     }
+    
+    /* Barra lateral de filtros (Sidebar) */
+    [data-testid="stSidebar"] {
+        background-color: #061530 !important;
+        border-right: 3px solid #f2c72e !important;
+    }
+    
+    [data-testid="stSidebar"] * {
+        color: #E2E8F0; /* Asegurar que el texto sea blanco en el fondo azul */
+    }
+    
     h1, h2, h3, h4, p, span, div, label {
         color: #E2E8F0 !important;
         font-family: 'Inter', 'Segoe UI', sans-serif;
     }
+    
+    /* Acentos corporativos en títulos (Amarillo Oro) */
+    h1, h2, h3, h4 {
+        color: #f2c72e !important;
+    }
+    
     h1 {
         font-weight: 800;
-        background: -webkit-linear-gradient(45deg, #00D2D3, #48BB78);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
         margin-bottom: 5px;
     }
     
@@ -42,16 +56,16 @@ st.markdown("""
         margin-bottom: 25px;
     }
     .kpi-card {
-        background: rgba(15, 23, 42, 0.5);
+        background: rgba(15, 23, 42, 0.4);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(242, 199, 46, 0.2);
         padding: 20px;
-        border-radius: 16px;
+        border-radius: 12px;
         box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         width: 100%;
-        height: 140px; /* Altura fija uniforme */
+        height: 140px; 
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -60,12 +74,12 @@ st.markdown("""
     }
     .kpi-card:hover {
         transform: translateY(-5px);
-        border-color: rgba(255, 255, 255, 0.3);
-        box-shadow: 0 20px 40px -10px rgba(0, 210, 211, 0.25);
+        border-color: rgba(242, 199, 46, 0.8);
+        box-shadow: 0 20px 40px -10px rgba(242, 199, 46, 0.25);
     }
     .kpi-title {
         font-size: 0.85rem;
-        color: #94A3B8 !important;
+        color: #CBD5E0 !important;
         text-transform: uppercase;
         letter-spacing: 1px;
         font-weight: 600;
@@ -76,7 +90,7 @@ st.markdown("""
     .kpi-value {
         font-size: 1.9rem;
         font-weight: 800;
-        color: #F8FAFC !important;
+        color: #ffffff !important;
         margin-top: 4px;
         white-space: nowrap;
         overflow: hidden;
@@ -91,26 +105,26 @@ st.markdown("""
         align-self: flex-start;
     }
     .delta-pos {
-        color: #10B981 !important;
-        background: rgba(16, 185, 129, 0.15);
+        color: #0b2659 !important;
+        background: #f2c72e;
     }
     .delta-neg {
-        color: #EF4444 !important;
-        background: rgba(239, 68, 68, 0.15);
+        color: #ffffff !important;
+        background: #EF4444;
     }
     
-    /* Elegante caja de descripción para los gráficos */
+    /* Elegante caja de descripción corporativa */
     .chart-description {
         font-size: 0.85rem;
-        color: #CBD5E0 !important;
+        color: #E2E8F0 !important;
         margin-top: 15px;
         margin-bottom: 30px;
         line-height: 1.6;
-        background: rgba(15, 23, 42, 0.4);
+        background: rgba(11, 38, 89, 0.6);
         padding: 15px 20px;
-        border-radius: 10px;
-        border-left: 4px solid #00D2D3;
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        border-left: 4px solid #f2c72e;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
     }
     
     /* Fix global margins for columns */
