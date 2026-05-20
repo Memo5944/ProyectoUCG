@@ -219,8 +219,8 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                 if len(todas_evidencias) >= 10: break
                 
                 try:
-                    # Traemos los primeros 5 resultados reales por cada query usando la API (Sin bloqueos)
-                    results = ddgs.text(q, max_results=5)
+                    # Traemos los primeros 5 resultados reales por cada query geolocalizando explícitamente en Ecuador
+                    results = ddgs.text(q, region='ec-es', max_results=5)
                     if not results: continue
                     
                     for res in results:
@@ -248,11 +248,12 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                                     if v > 15000: v /= 12
                                     
                                     if 425 <= v <= 10000: # Salario básico Ecuador como piso
-                                        portal = "Web / " + link.split('/')[2] if '://' in link else "Referencia"
+                                        # Intentamos obtener el dominio principal rápido para la fuente
+                                        portal = "Web / " + link.split('/')[2].replace('www.', '') if '://' in link else "Referencia"
                                         if not any(abs(e['valor'] - v) < 5 for e in todas_evidencias):
                                             todas_evidencias.append({
                                                 "empresa": portal,
-                                                "cargo_hallado": title[:60].strip() + "...",
+                                                "cargo_hallado": title[:100].strip() + ("..." if len(title) > 100 else ""),
                                                 "valor": round(v, 2),
                                                 "url": link
                                             })

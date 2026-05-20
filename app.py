@@ -673,11 +673,21 @@ if archivo_cargado is not None:
                 df_evidencias = pd.DataFrame(datos_mercado['evidencias'])
                 df_evidencias.columns = ['Portal/Fuente', 'Cargo Hallado', 'Sueldo (USD)', 'Enlace Fuente']
                 
-                # Mostrar tabla con estilo
+                # Mostrar tabla interactiva (links y moneda)
                 st.dataframe(
-                    df_evidencias.style.format({'Sueldo (USD)': '${:,.2f}'}),
+                    df_evidencias,
                     use_container_width=True,
-                    hide_index=True
+                    hide_index=True,
+                    column_config={
+                        'Sueldo (USD)': st.column_config.NumberColumn(
+                            "Sueldo (USD)",
+                            format="$ %.2f"
+                        ),
+                        'Enlace Fuente': st.column_config.LinkColumn(
+                            "Enlace Directo",
+                            display_text="Ver Oferta 🔗"
+                        )
+                    }
                 )
                 st.success("💡 Los datos anteriores reflejan ofertas de trabajo reales detectadas en el mercado ecuatoriano en tiempo real.")
             else:
