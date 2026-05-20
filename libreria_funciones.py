@@ -196,11 +196,12 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     """
     SMART HUNTER EXTERN (Ecuador):
     Minería de ofertas reales y activas con RADAR BIDIRECCIONAL.
+    Motor: Yahoo Search (sin bloqueos anti-bot).
     """
     cargo_base = str(cargo).strip()
     area_base = str(area).strip() if area else ""
     
-    # Queries diversificadas y MÁS FLEXIBLES (sin comillas exactas)
+    # Queries diversificadas y flexibles (sin comillas exactas)
     search_queries = [
         f'sueldo {cargo_base} ecuador',
         f'cuanto gana un {cargo_base} en ecuador',
@@ -209,61 +210,82 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
         f'site:computrabajo.com.ec {cargo_base} ecuador'
     ]
     
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    }
+
     todas_evidencias = []
     
-    try:
-        from duckduckgo_search import DDGS
+    for q in search_queries:
+        if len(todas_evidencias) >= 10: break
         
-        with DDGS() as ddgs:
-            for q in search_queries:
-                if len(todas_evidencias) >= 10: break
+        q_enc = urllib.parse.quote_plus(q)
+        url_yahoo = f"https://search.yahoo.com/search?p={q_enc}"
+        
+        try:
+            resp = requests.get(url_yahoo, headers=headers, timeout=8)
+            if resp.status_code == 200:
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                results = soup.select(".algo")
                 
-                try:
-                    # Traemos los primeros 5 resultados reales por cada query geolocalizando explícitamente en Ecuador
-                    results = ddgs.text(q, region='ec-es', max_results=5)
-                    if not results: continue
+                for res in results:
+                    title_el = res.select_one("h3")
+                    snippet_el = res.select_one(".compText")
+                    link_el = res.select_one("a")
                     
-                    for res in results:
-                        title = res.get('title', '')
-                        snippet = res.get('body', '')
-                        link = res.get('href', 'web')
-                        
-                        full_text = (title + " " + snippet).lower()
-                        
-                        # --- COMPONENTE RADAR BIDIRECCIONAL ---
-                        # Patrón: detecta números cerca de disparadores salariales en cualquier orden
-                        regex_patrones = [
-                            r'(?:sueldo|salario|remuneración|pagamos|ofrece|usd|\$)\D*([\d\.,]{3,6})',
-                            r'([\d\.,]{3,6})\D*(?:usd|dólares|mensuales|mensual)'
-                        ]
-                        
-                        for p in regex_patrones:
-                            matches = re.finditer(p, full_text)
-                            for m in matches:
-                                raw_val = m.group(1)
-                                clean_val = re.sub(r'[^\d]', '', raw_val)
-                                if clean_val:
-                                    v = float(clean_val)
-                                    if v in [2023, 2024, 2025, 2026]: continue
-                                    if v > 15000: v /= 12
+                    if not title_el or not link_el: continue
+                    
+                    title = title_el.get_text()
+                    snippet = snippet_el.get_text() if snippet_el else ""
+                    link = link_el.get('href', 'web')
+                    
+                    full_text = (title + " " + snippet).lower()
+                    
+                    # --- COMPONENTE RADAR BIDIRECCIONAL (VERSION PULIDA) ---
+                    # Sin 'ofrece' para no confundir "ofrece X vacantes" con sueldos
+                    # Limitado a 40 chars de distancia para evitar cruces de parrafo
+                    regex_patrones = [
+                        r'(?:sueldo|salario|remuneración|pagamos|usd|\$)\D{0,40}([\d\.,]{3,6})',
+                        r'([\d\.,]{3,6})\D{0,40}(?:usd|dólares|mensuales|mensual)'
+                    ]
+                    
+                    for p in regex_patrones:
+                        matches = re.finditer(p, full_text)
+                        for m in matches:
+                            raw_val = m.group(1)
+                            clean_val = re.sub(r'[^\d]', '', raw_val)
+                            if clean_val:
+                                v = float(clean_val)
+                                if v in [2023, 2024, 2025, 2026]: continue
+                                if v > 15000: v /= 12
+                                
+                                if 425 <= v <= 10000:
+                                    # Excluir paginas estadisticas agregadoras (promedios falsos)
+                                    if any(ex in link.lower() for ex in ['/salarios', '/sueldos', '/salaries', '/tendencias']):
+                                        continue
                                     
-                                    if 425 <= v <= 10000: # Salario básico Ecuador como piso
-                                        # Intentamos obtener el dominio principal rápido para la fuente
-                                        portal = "Web / " + link.split('/')[2].replace('www.', '') if '://' in link else "Referencia"
-                                        if not any(abs(e['valor'] - v) < 5 for e in todas_evidencias):
-                                            todas_evidencias.append({
-                                                "empresa": portal,
-                                                "cargo_hallado": title[:100].strip() + ("..." if len(title) > 100 else ""),
-                                                "valor": round(v, 2),
-                                                "url": link
-                                            })
-                        if len(todas_evidencias) >= 10: break
-                except Exception:
-                    pass
-    except ImportError:
-        pass # Si falla por alguna razón instalar pip install duckduckgo-search
+                                    portal = "Buscador Web"
+                                    # Decodificar URL real desde los redireccionamientos de Yahoo
+                                    if "RU=" in link:
+                                        try:
+                                            real_url = urllib.parse.unquote(link.split("RU=")[1].split("/RK=")[0])
+                                            portal = "Web / " + real_url.split('/')[2].replace('www.', '')
+                                            link = real_url
+                                        except:
+                                            pass
+                                    
+                                    if not any(abs(e['valor'] - v) < 5 for e in todas_evidencias):
+                                        todas_evidencias.append({
+                                            "empresa": portal,
+                                            "cargo_hallado": title[:100].strip() + ("..." if len(title) > 100 else ""),
+                                            "valor": round(v, 2),
+                                            "url": link
+                                        })
+                    if len(todas_evidencias) >= 10: break
+        except Exception:
+            pass
 
-    # Estadísticas y Respuesta
+    # Estadisticas y Respuesta
     valores = [e['valor'] for e in todas_evidencias]
     resultado = {
         "salario_estimado": 0.0, "media": 0.0, "mediana": 0.0, "evidencias": todas_evidencias,
@@ -282,5 +304,3 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
         })
     
     return resultado
-
-
