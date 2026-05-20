@@ -192,6 +192,40 @@ def generar_enlaces_investigacion(cargo):
 
 import statistics
 
+def _es_portal_empleo_confiable(url):
+    """
+    Verifica si la URL pertenece a un portal de empleo confiable.
+    Solo retorna True para sitios de contratación/empleo reales.
+    """
+    url_lower = url.lower()
+    
+    # Portales de empleo CONFIABLES
+    portales_validos = [
+        'computrabajo.com',
+        'indeed.com',
+        'linkedin.com',
+        'glassdoor.com',
+        'multitrabajo.com',
+        'trabajo.com',
+        'bolsa.com',
+        'laborum.com',
+        'jooble.com',
+        'monster.com',
+        'infojobs.net',
+        'adzuna.com',
+        'talent.com',
+        'zonaempleo.com',
+        'empleos.ec',
+        'ofertasdeempleo.net',
+        'workana.com',
+        'toptal.com',
+        'upwork.com',
+    ]
+    
+    # Verificar que la URL contenga al menos uno de los portales válidos
+    return any(portal in url_lower for portal in portales_validos)
+
+
 def _es_valor_sbu_generico(valor, titulo, snippet, cargo_base):
     """
     Detecta si el valor es el SBU general (482) sin contexto de categoría específica.
@@ -357,8 +391,8 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                         if score < 0:
                             continue
                         
-                        # Excluir páginas agregadoras de estadísticas
-                        if any(ex in link.lower() for ex in ['/salarios', '/sueldos', '/salaries', '/tendencias', '/estadisticas']):
+                        # FILTRO CRÍTICO: Solo portales de empleo confiables
+                        if not _es_portal_empleo_confiable(link):
                             continue
                         
                         # Decodificar URL real
