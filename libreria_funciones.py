@@ -195,28 +195,28 @@ import statistics
 def estimar_mercado_externo(cargo, area, mediana_interna):
     """
     SMART HUNTER EXTERN (Ecuador):
-    Minería de ofertas reales y activas para obtener evidencias verificables.
-    Busca hasta 5 puntos detallados (Empresa, Cargo, Sueldo, Link).
+    Minería de ofertas reales y activas con RADAR BIDIRECCIONAL.
     """
     cargo_base = str(cargo).strip()
     area_base = str(area).strip() if area else ""
     
-    # Estrategia de búsqueda: Ofertas reales + Contexto de Área
+    # Queries diversificadas
     search_queries = [
-        f'oferta empleo "{cargo_base}" {area_base} ecuador',
-        f'vacante "{cargo_base}" {area_base} sueldo',
-        f'"{cargo_base}" salarios ecuador 2024..2025',
-        f'sueldo prommedio de {area_base} en ecuador'
+        f'oferta laboral "{cargo_base}" {area_base} ecuador',
+        f'"{cargo_base}" sueldo mensual ecuador',
+        f'site:computrabajo.com.ec "{cargo_base}"',
+        f'vacantes para "{cargo_base}" ecuador $',
+        f'remuneración promedio "{cargo_base}" ecuador'
     ]
     
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
     }
 
     todas_evidencias = []
     
     for q in search_queries:
-        if len(todas_evidencias) >= 8: break
+        if len(todas_evidencias) >= 10: break
         q_enc = urllib.parse.quote_plus(q)
         url_ddg = f"https://html.duckduckgo.com/html/?q={q_enc}"
         
@@ -232,57 +232,54 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                     
                     full_text = (title + " " + snippet).lower()
                     
-                    # Regex para detectar dinero ($ o USD) seguido de un valor lógico en Ecuador (400-9000)
-                    match = re.search(r'(?:usd|sueldo|\$|salario|ofrece)\D*([\d\.,]+)', full_text)
-                    if match:
-                        num_str = re.sub(r'[^\d]', '', match.group(1))
-                        if num_str:
-                            v = float(num_str)
-                            # Si es anual (>15000), convertir a mensual
-                            if v > 15000: v = v / 12
-                            
-                            if 400 <= v <= 12000:
-                                # Extraer "Empresa" - Intento de deducir del link o título
-                                portal = link.split('/')[0] if '/' in link else "Portal Web"
-                                if "linkedin" in link: portal = "LinkedIn"
-                                elif "computrabajo" in link: portal = "Computrabajo"
-                                elif "multitrabajos" in link: portal = "Multitrabajos"
-                                elif "talent" in link: portal = "Talent.com"
+                    # --- COMPONENTE RADAR BIDIRECCIONAL ---
+                    # Patrón: detecta números cerca de disparadores salariales en cualquier orden
+                    # Excluye años comunes (2023, 2024, 2025) para evitar falsos positivos
+                    regex_patrones = [
+                        r'(?:sueldo|salario|remuneración|pagamos|ofrece|usd|\$)\D*([\d\.,]{3,6})', # Palabra antes
+                        r'([\d\.,]{3,6})\D*(?:usd|dólares|mensuales|mensual)' # Palabra después
+                    ]
+                    
+                    for p in regex_patrones:
+                        matches = re.finditer(p, full_text)
+                        for m in matches:
+                            raw_val = m.group(1)
+                            # Limpieza total: solo dígitos
+                            clean_val = re.sub(r'[^\d]', '', raw_val)
+                            if clean_val:
+                                v = float(clean_val)
+                                # Lógica de filtrado de años y rangos locos
+                                if v in [2023, 2024, 2025]: continue
+                                if v > 15000: v /= 12
                                 
-                                # Evitar duplicados por valor cercano (± USD 5)
-                                if not any(abs(e['valor'] - v) < 5 for e in todas_evidencias):
-                                    todas_evidencias.append({
-                                        "empresa": portal,
-                                        "cargo_hallado": title[:50].strip() + "...",
-                                        "valor": v,
-                                        "url": "https://" + link if not link.startswith("http") else link
-                                    })
-                    if len(todas_evidencias) >= 8: break
-        except:
-            pass
+                                if 425 <= v <= 10000: # Salario básico Ecuador como piso
+                                    portal = "Web / " + link.split('/')[0] if '/' in link else "Referencia"
+                                    if not any(abs(e['valor'] - v) < 5 for e in todas_evidencias):
+                                        todas_evidencias.append({
+                                            "empresa": portal,
+                                            "cargo_hallado": title[:60].strip() + "...",
+                                            "valor": round(v, 2),
+                                            "url": "https://" + link if not link.startswith("http") else link
+                                        })
+                    if len(todas_evidencias) >= 10: break
+        except: pass
 
-    # Cálculos y Respuesta Estructurada
+    # Estadísticas y Respuesta
     valores = [e['valor'] for e in todas_evidencias]
-    
     resultado = {
-        "salario_estimado": 0.0,
-        "media": 0.0,
-        "mediana": 0.0,
-        "evidencias": todas_evidencias,
-        "mensaje": "❌ No se hallaron suficientes evidencias verificables.",
-        "confianza": "Sin datos",
-        "original_url": f"https://www.google.com/search?q={urllib.parse.quote_plus(cargo_base + ' sueldo ecuador')}"
+        "salario_estimado": 0.0, "media": 0.0, "mediana": 0.0, "evidencias": todas_evidencias,
+        "mensaje": "❌ Smart Hunter: No se detectaron sueldos legibles en las ofertas actuales.",
+        "confianza": "Sin datos", "original_url": f"https://www.google.com/search?q={urllib.parse.quote_plus(cargo_base + ' sueldo ecuador')}"
     }
 
     if valores:
-        med_val = statistics.median(valores)
-        mean_val = sum(valores) / len(valores)
+        m_val = statistics.median(valores)
         resultado.update({
-            "salario_estimado": round(med_val, 2),
-            "media": round(mean_val, 2),
-            "mediana": round(med_val, 2),
-            "confianza": "Alta (Consenso de Red)" if len(valores) >= 4 else "Baja (Pocas fuentes)",
-            "mensaje": f"✅ Se han verificado {len(valores)} fuentes de mercado real."
+            "salario_estimado": round(m_val, 2),
+            "media": round(sum(valores) / len(valores), 2),
+            "mediana": round(m_val, 2),
+            "confianza": "Validada por Red" if len(valores) >= 3 else "Referencial",
+            "mensaje": f"✅ Éxito: {len(valores)} evidencias encontradas con Radar Bidireccional."
         })
     
     return resultado
