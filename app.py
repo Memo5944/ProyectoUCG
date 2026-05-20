@@ -344,7 +344,7 @@ if archivo_cargado is not None:
 
         with tab1:
 
-            for trabajador_seleccionado in [trabajador_seleccionado]:
+            if trabajador_seleccionado:  # Analizamos al empleado de forma directa
                 cargo_empleado = datos_empleado['cargo']
 
                 st.markdown(f"### Simulador de Incremento para: **{trabajador_seleccionado.title()}**")
@@ -691,7 +691,7 @@ if archivo_cargado is not None:
                 diferencia_ext = analisis['salario_propuesto'] - salario_mercado_externo
                 pct_ext = (diferencia_ext / salario_mercado_externo) * 100
                 if pct_ext < -10:
-                    st.error(f"📉 **Desventaja vs Ecuador:** Nuestra propuesta final (USD {analisis['salario_propuesto']:,.2f}) está **{abs(pct_ext):.1f}% por debajo** de las ofertas de mercado (USD {salario_market_externo if 'salario_market_externo' in locals() else salario_mercado_externo:,.0f}).")
+                    st.error(f"📉 **Desventaja vs Ecuador:** Nuestra propuesta final (USD {analisis['salario_propuesto']:,.2f}) está **{abs(pct_ext):.1f}% por debajo** de las ofertas de mercado (USD {salario_mercado_externo:,.0f}).")
                 elif pct_ext > 10:
                     st.warning(f"📈 **Superior al Mercado:** La propuesta está **{pct_ext:.1f}% superior** a lo que ofrecen otras empresas en Ecuador. Garantiza retención de talento.")
                 else:

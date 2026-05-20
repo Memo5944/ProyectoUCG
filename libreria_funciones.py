@@ -74,9 +74,9 @@ def evaluar_incremento_detallado(datos_empleado, porcentaje_incremento, porcenta
     salario_total_actual = float(datos_empleado.get('salario_total', 0))
     salario_base_actual = float(datos_empleado.get('salario_base_limpio', salario_total_actual))
     
-    # Extraer horas extras evitando cualquier columna de 'total', 'salario' o 'base'
+    # Extraer horas extras evitando cualquier columna que no sea de rubros (e.g. total, salario, cargo)
     he_cols = [c for c in datos_empleado.index if ('he ' in str(c).lower() or 'hora' in str(c).lower() or 'extra' in str(c).lower())]
-    he_cols = [c for c in he_cols if 'total' not in str(c).lower() and 'salario' not in str(c).lower() and 'base' not in str(c).lower()]
+    he_cols = [c for c in he_cols if 'total' not in str(c).lower() and 'salario' not in str(c).lower() and 'base' not in str(c).lower() and 'cargo' not in str(c).lower() and 'area' not in str(c).lower()]
     
     factor_incremento = 1 + (porcentaje_incremento / 100)
     
