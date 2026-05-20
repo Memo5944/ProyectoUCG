@@ -343,7 +343,7 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     todas_evidencias = []
     
     for q in search_queries:
-        if len(todas_evidencias) >= 20: break  # Buscar más resultados con queries específicas
+        if len(todas_evidencias) >= 50: break  # Limitar recolección global antes de procesar
         
         q_enc = urllib.parse.quote_plus(q)
         url_yahoo = f"https://search.yahoo.com/search?p={q_enc}"
@@ -419,13 +419,20 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                         if not _es_portal_empleo_confiable(link):
                             continue
                         
-                        # Decodificar URL real
-                        portal = "Buscador Web"
+                        # Decodificar URL real y extraer nombre de empresa (portal) más amigable
+                        portal = "Portal Web"
                         if "RU=" in link:
                             try:
                                 real_url = urllib.parse.unquote(link.split("RU=")[1].split("/RK=")[0])
-                                portal = "Web / " + real_url.split('/')[2].replace('www.', '')
+                                domain = real_url.split('/')[2].replace('www.', '').replace('.com', '').replace('.ec', '').replace('.net', '').capitalize()
+                                portal = domain
                                 link = real_url
+                            except:
+                                pass
+                        elif "yahoo" not in link.lower():
+                            try:
+                                domain = link.split('/')[2].replace('www.', '').replace('.com', '').replace('.ec', '').replace('.net', '').capitalize()
+                                portal = domain
                             except:
                                 pass
                         
@@ -439,14 +446,28 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                                 "score_confianza": score
                             })
                     
-                    if len(todas_evidencias) >= 15:
+                    
+                    if len(todas_evidencias) >= 60:
                         break
         except Exception:
             pass
 
+    # Mantener hasta 5 evidencias por cada portal
+    evidencias_por_portal = {}
+    for ev in todas_evidencias:
+        ptl = ev['empresa']
+        if ptl not in evidencias_por_portal:
+            evidencias_por_portal[ptl] = []
+        if len(evidencias_por_portal[ptl]) < 5:
+            evidencias_por_portal[ptl].append(ev)
+            
+    # Aplanar la lista de agrupados y ordenar por score global
+    todas_evidencias = []
+    for ptl, evs in evidencias_por_portal.items():
+        todas_evidencias.extend(evs)
+
     # Ordenar por score de confianza (valores de tabla sectorial primero)
     todas_evidencias.sort(key=lambda x: x['score_confianza'], reverse=True)
-    todas_evidencias = todas_evidencias[:10]  # Mantener top 10
     
     # Remover score_confianza antes de retornar (campo interno)
     for ev in todas_evidencias:
