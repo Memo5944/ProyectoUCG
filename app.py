@@ -547,12 +547,13 @@ else:
     
     st.markdown("#### Formato de archivo esperado:")
     ejemplo = pd.DataFrame({
+        "Codigo": ["EMP01", "EMP02", "EMP03"],
         "Trabajador": ["Juan Perez", "Maria Gomez", "Carlos Diaz"],
         "Cargo": ["Analista Financiero", "Analista Financiero", "Gerente"],
-        "Departamento": ["Finanzas", "Finanzas", "Finanzas"],
+        "Area": ["Finanzas", "Finanzas", "Finanzas"],
         "Antigüedad": ["15/05/2021", "10/01/2019", "01/08/2013"],
         "Edad": [28, 32, 45],
-        "Salario Base": [1200, 1400, 3000],
+        "Salario": [1200, 1400, 3000],
         "HE 25%": [50, 0, 0],
         "HE 50%": [0, 100, 0],
         "HE 100%": [0, 0, 150]

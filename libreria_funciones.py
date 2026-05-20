@@ -2,35 +2,31 @@ import pandas as pd
 
 def preparar_datos(df):
     """
-    Estandariza los nombres de columnas, calcula el Salario Total y parsea fechas.
-    Asume columnas como: 'Trabajador', 'Cargo', 'Antigüedad', 'Edad', 'Salario Base', 'HE 25%', 'HE 50%', 'HE 100%'
+    Estandariza los nombres de columnas, verifica obligatoriedad y calcula el Salario Total.
     """
     # Normalizar nombres de columnas a minúsculas
-    df.columns = [c.strip().lower() for c in df.columns]
+    df.columns = [str(c).strip().lower() for c in df.columns]
     
-    # Buscar específicamente el salario base para no confundirlo con el salario total
-    col_salario = next((c for c in df.columns if 'base' in c), None)
-    if not col_salario:
-        col_salario = next((c for c in df.columns if 'salario' in c and 'total' not in c), None)
+    # Validar que existan todas las columnas requeridas estrictamente
+    columnas_requeridas = ['codigo', 'trabajador', 'cargo', 'area', 'antigüedad', 'edad', 'salario', 'he 25%', 'he 50%', 'he 100%']
+    columnas_faltantes = [col for col in columnas_requeridas if col not in df.columns]
+    
+    if len(columnas_faltantes) > 0:
+        faltantes_str = ", ".join([c.title() for c in columnas_faltantes]).replace('He', 'HE').replace('Area', 'Área').replace('Codigo', 'Código')
+        raise ValueError(f"Faltan las siguientes columnas en el archivo: {faltantes_str}. Verifica que los nombres sean exactamente los indicados.")
         
-    if col_salario:
-        df['salario_base_limpio'] = pd.to_numeric(df[col_salario], errors='coerce').fillna(0)
-    else:
-        df['salario_base_limpio'] = 0.0
+    df['salario_base_limpio'] = pd.to_numeric(df['salario'], errors='coerce').fillna(0)
 
-    df['total_horas_extras'] = 0.0
-    
-    # Sumar horas extras evitando columnas de "total" que ya vengan en el archivo
-    he_cols = [c for c in df.columns if ('he ' in c or 'hora' in c or 'extra' in c) and 'total' not in c and 'base' not in c and 'salario' not in c]
-    for col in he_cols:
-        val_he = pd.to_numeric(df[col], errors='coerce').fillna(0)
-        df['total_horas_extras'] += val_he
+    # Sumar específicamente estas horas extras
+    df['total_horas_extras'] = (pd.to_numeric(df['he 25%'], errors='coerce').fillna(0) +
+                                pd.to_numeric(df['he 50%'], errors='coerce').fillna(0) +
+                                pd.to_numeric(df['he 100%'], errors='coerce').fillna(0))
         
-    # Calcular salario total como Base + Horas Extras (siempre recalculamos para cuadrar)
+    # Calcular salario total
     df['salario_total'] = df['salario_base_limpio'] + df['total_horas_extras']
             
     # Convertir antigüedad a años si viene como fecha (dd/mm/aaaa) o datetime
-    col_antiguedad = next((c for c in df.columns if 'antig' in c or 'año' in c or 'year' in c), None)
+    col_antiguedad = 'antigüedad'
     if col_antiguedad:
         if pd.api.types.is_datetime64_any_dtype(df[col_antiguedad]):
             df[col_antiguedad] = (pd.Timestamp('today') - df[col_antiguedad]).dt.days / 365.25
