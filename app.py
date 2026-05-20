@@ -23,7 +23,7 @@ st.markdown("""
         background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
     }
     
-    /* Acentos corporativos en títulos */
+    /* Acentos corporativos en títulos (Cuerpo principal) */
     h1, h2, h3, h4 {
         color: #0b2659 !important;
     }
@@ -36,9 +36,26 @@ st.markdown("""
         padding-bottom: 5px;
     }
     
-    /* Borde amarillo en sidebar */
+    /* Borde amarillo en sidebar y textos visibles */
     [data-testid="stSidebar"] {
         border-right: 4px solid #f2c72e !important;
+    }
+    
+    /* Hacer que los títulos de la barra lateral sean dorados para contraste */
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3, 
+    [data-testid="stSidebar"] h4 {
+        color: #f2c72e !important;
+        border-bottom: none;
+    }
+    
+    /* Textos comunes en la barra lateral en blanco puro */
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] label, 
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] .stMarkdown {
+        color: #ffffff !important;
     }
     
     /* Estilos Premium para Tarjetas de KPI (Light Mode) */
