@@ -152,12 +152,14 @@ def calcular_compa_ratio(salario_total, mediana_cargo):
     return salario_total / mediana_cargo
 
 import urllib.parse
+import requests
+from bs4 import BeautifulSoup
+import re
 
 def generar_enlaces_investigacion(cargo):
     """
     Genera enlaces de búsqueda REALES en fuentes confiables del mercado laboral
     ecuatoriano para que el usuario investigue datos salariales verdaderos.
-    NO contiene datos inventados ni estimaciones.
     """
     cargo_limpio = str(cargo).strip()
     cargo_encoded = urllib.parse.quote_plus(cargo_limpio)
@@ -182,11 +184,6 @@ def generar_enlaces_investigacion(cargo):
             'fuente': 'LinkedIn Salary',
             'descripcion': 'Insights salariales de profesionales verificados',
             'url': f'https://www.linkedin.com/salary/search?keywords={cargo_encoded}&countryCode=ec'
-        },
-        {
-            'fuente': 'Google Search (Encuestas Salariales EC)',
-            'descripcion': 'Estudios y encuestas salariales publicadas en Ecuador',
-            'url': f'https://www.google.com/search?q=encuesta+salarial+{cargo_encoded}+Ecuador+2025+2026'
         }
     ]
     
@@ -195,24 +192,91 @@ def generar_enlaces_investigacion(cargo):
 
 def estimar_mercado_externo(cargo, mediana_interna):
     """
-    Retorna estructura para el mercado externo SIN datos inventados.
-    El salario_estimado se inicializa en 0 para que el usuario ingrese
-    el dato REAL que investigó en las fuentes proporcionadas.
+    CONSULTA REAL: Realiza una búsqueda dinámica en Talent.com Ecuador
+    para obtener el salario real del mercado en tiempo real.
+    Cero datos hardcodeados en el código.
     """
     cargo_str = str(cargo).strip()
-    enlaces = generar_enlaces_investigacion(cargo_str)
+    cargo_encoded = urllib.parse.quote_plus(cargo_str)
+    url_consulta = f"https://ec.talent.com/salary?job={cargo_encoded}"
     
-    return {
-        'salario_estimado': 0.0,
-        'enlaces_investigacion': enlaces,
-        'muestras': [],
-        'confianza': 'Pendiente — Requiere datos reales del usuario',
-        'fuente': 'Investigación manual en fuentes verificadas',
-        'mensaje': (
-            f'Investiga el salario real del cargo "{cargo_str}" en Ecuador '
-            f'usando los enlaces proporcionados. Ingresa el valor encontrado '
-            f'en el campo "Sueldo Promedio Mercado (USD)" para obtener un '
-            f'diagnóstico basado en datos reales.'
-        ),
-        'empresa_referencia': 'Dato pendiente de investigación'
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
     }
+    
+    resultado = {
+        "salario_estimado": 0.0,
+        "enlaces_investigacion": generar_enlaces_investigacion(cargo_str),
+        "muestras": [],
+        "confianza": "Buscando datos en tiempo real...",
+        "fuente": "Talent.com Ecuador (Consulta Dinámica)",
+        "original_url": url_consulta,
+        "mensaje": f"Realizando consulta dinámica para '{cargo_str}'...",
+        "empresa_referencia": "Mercado General Ecuador"
+    }
+    
+    try:
+        # Intentar la consulta dinámica
+        response = requests.get(url_consulta, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # Intentar encontrar el monto en las clases conocidas de Talent.com
+            salary_card = soup.find('div', class_='salary-card') or soup.find('div', class_='l-card')
+            
+            amount_text = None
+            if salary_card:
+                amount_el = (salary_card.find('div', class_='salary-amount') or 
+                             salary_card.find('div', class_='time-card__amount') or
+                             salary_card.find('span', class_='salary-amount'))
+                if amount_el:
+                    amount_text = amount_el.text.strip()
+            
+            # Si no se halló por clase, buscar por Regex en el texto plano
+            if not amount_text:
+                page_text = soup.get_text()
+                # Buscar patrón de moneda: $ 1,200 o $1.500
+                m = re.search(r'\$\s*([\d\.,]+)', page_text)
+                if m:
+                    amount_text = m.group(1)
+            
+            if amount_text:
+                # Limpiar el texto: quitar $, espacios, y manejar miles
+                # Talent.com suele usar "." para miles y "," para decimales o viceversa según el locale
+                clean_raw = re.sub(r'[^\d\.,]', '', amount_text)
+                
+                # Heurística de conversión: si hay un punto y una coma, el último es el decimal
+                if '.' in clean_raw and ',' in clean_raw:
+                    if clean_raw.find('.') < clean_raw.find(','): # 1.200,50
+                        clean_num = clean_raw.replace('.', '').replace(',', '.')
+                    else: # 1,200.50
+                        clean_num = clean_raw.replace(',', '')
+                else:
+                    # Si solo hay uno, asumimos que es separador de miles si el resultado es "lógico" para un sueldo
+                    # o simplemente lo quitamos para tener el entero
+                    clean_num = clean_raw.replace('.', '').replace(',', '')
+                
+                try:
+                    valor = float(clean_num)
+                    
+                    # Talent.com a veces muestra anual. Si es > 6000, dividimos para 12
+                    # (En Ecuador pocos cargos básicos superan los 5000/mes)
+                    if valor > 6000:
+                        valor = round(valor / 12, 2)
+                    
+                    resultado["salario_estimado"] = valor
+                    resultado["confianza"] = "Alta (Dato obtenido en vivo)"
+                    resultado["mensaje"] = f"Consulta exitosa en Talent.com. Se halló un promedio mensual de USD {valor:,.2f} para '{cargo_str}'."
+                except:
+                    pass
+        
+        if resultado["salario_estimado"] == 0:
+            resultado["confianza"] = "Consulta realizada — Sin resultado exacto"
+            resultado["mensaje"] = f"La consulta automática a Talent.com no arrojó un valor numérico claro para '{cargo_str}'. Por favor, usa los enlaces de apoyo para validar manualmente."
+            
+    except Exception as e:
+        resultado["confianza"] = "Error en consulta dinámica"
+        resultado["mensaje"] = f"No se pudo completar la consulta automática (Error: {str(e)}). Usa los enlaces de investigación manual."
+        
+    return resultado
+

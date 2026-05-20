@@ -650,66 +650,57 @@ if archivo_cargado is not None:
 
 
         with tab2:
-            st.markdown(f"### 🌍 Benchmark de Mercado Externo - **Ecuador**")
+            st.markdown(f"### 🌍 Consulta Automática de Mercado - **Ecuador**")
+            st.info(f"🤖 **Estado de la Consulta:** {datos_mercado['mensaje']}")
+            
             st.markdown(f"Análisis salarial enfocado al mercado corporativo nacional para el cargo de **{cargo_para_busqueda.title()}**.")
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # --- Sección de enlaces de investigación ---
-            st.markdown("#### 🔍 Fuentes de Investigación Salarial (Datos Reales)")
-            st.caption("Consulta estas fuentes para obtener datos verdaderos del mercado ecuatoriano. Luego ingresa el valor investigado abajo.")
-            
-            enlaces = datos_mercado.get('enlaces_investigacion', [])
-            if enlaces:
-                html_enlaces = '<div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 12px; border-left: 5px solid #0b2659; box-shadow: 0 5px 15px rgba(0,0,0,0.05); color: #0b2659; margin-bottom: 20px;">'
-                html_enlaces += '<h4 style="margin-top: 0; color: #0b2659; font-weight: bold;">📑 Enlaces para Investigar Salarios Reales</h4>'
-                html_enlaces += '<p style="font-size: 0.85em; color: #475569; margin-bottom: 15px;">Haz clic en cada fuente para consultar datos salariales verificables del cargo en Ecuador:</p>'
-                html_enlaces += '<ul style="margin-bottom: 10px; font-size: 0.9em; list-style: none; padding-left: 0;">'
-                iconos = {'Glassdoor': '🏢', 'Computrabajo Ecuador': '💼', 'Indeed Ecuador': '🔎', 'LinkedIn Salary': '💡', 'Google Search (Encuestas Salariales EC)': '🌐'}
-                for enlace in enlaces:
-                    icono = iconos.get(enlace['fuente'], '🔗')
-                    html_enlaces += f'<li style="margin-bottom: 10px; padding: 10px; background: rgba(242,199,46,0.1); border-radius: 8px;">'
-                    html_enlaces += f'{icono} <b>{enlace["fuente"]}</b> — {enlace["descripcion"]}<br>'
-                    html_enlaces += f'<a href="{enlace["url"]}" target="_blank" style="color: #0b2659; font-weight: bold; text-decoration: underline;">'
-                    html_enlaces += f'➜ Buscar "{cargo_para_busqueda.title()}" en {enlace["fuente"]}</a></li>'
-                html_enlaces += '</ul></div>'
-                st.markdown(html_enlaces, unsafe_allow_html=True)
-            
-            st.markdown("---")
-            
-            # --- Sección de ingreso de dato real ---
-            st.markdown("#### 💰 Ingreso de Dato Real de Mercado")
-            st.caption("Ingresa aquí el salario promedio que encontraste en las fuentes de arriba para obtener el diagnóstico.")
+            # --- Sección de ingreso/confirmación de dato experto ---
+            st.markdown("#### 💰 Resultado de la Consulta Dinámica")
+            st.caption("El sistema ha consultado fuentes externas en tiempo real. Puedes validar o ajustar el valor obtenido.")
             
             t2_c1, t2_c2 = st.columns([1, 1.5])
             
             with t2_c1:
+                # El valor por defecto ahora es lo que traiga la consulta automática
                 salario_mercado_externo = st.number_input(
-                    "Sueldo Promedio Mercado (USD)", 
-                    min_value=0.0, value=0.0, step=50.0, 
-                    help="Ingresa el salario promedio REAL que encontraste en Glassdoor, Computrabajo, Indeed u otra fuente confiable para el cargo en Ecuador."
+                    "Sueldo Mercado Consultado (USD)", 
+                    min_value=0.0, 
+                    value=float(salario_mercado_estimado), 
+                    step=50.0, 
+                    help="Este valor proviene de la consulta automática a Talent.com Ecuador. Puedes ajustarlo manualmente si tienes un dato más preciso."
                 )
                 
-                if salario_mercado_externo > 0:
-                    st.markdown(render_kpi_card("Dato de Mercado Real (Ingresado)", f"USD {salario_mercado_externo:,.0f}", border_color="#0b2659"), unsafe_allow_html=True)
-                else:
-                    st.markdown(render_kpi_card("Dato de Mercado Real", "Pendiente", border_color="#94a3b8"), unsafe_allow_html=True)
+                color_kpi = "#48BB78" if salario_mercado_externo > 0 else "#94a3b8"
+                label_kpi = "Dato de Mercado" if salario_mercado_externo > 0 else "Dato Pendiente"
+                val_kpi = f"USD {salario_mercado_externo:,.0f}" if salario_mercado_externo > 0 else "N/D"
+                
+                st.markdown(render_kpi_card(label_kpi, val_kpi, border_color=color_kpi), unsafe_allow_html=True)
                 
             with t2_c2:
                 if salario_mercado_externo > 0:
                     html_ficha = f'<div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 12px; border-left: 5px solid #48BB78; box-shadow: 0 5px 15px rgba(0,0,0,0.05); color: #0b2659;">'
-                    html_ficha += '<h4 style="margin-top: 0; color: #48BB78; font-weight: bold;">✅ Dato de Mercado Ingresado</h4>'
-                    html_ficha += f'<p style="font-size: 0.95em;"><b>Cargo:</b> {cargo_para_busqueda.title()}</p>'
-                    html_ficha += f'<p style="font-size: 0.95em;"><b>Salario de Mercado:</b> USD {salario_mercado_externo:,.2f}</p>'
-                    html_ficha += f'<p style="font-size: 0.95em;"><b>Salario Propuesto:</b> USD {analisis["salario_propuesto"]:,.2f}</p>'
+                    html_ficha += f'<h4 style="margin-top: 0; color: #48BB78; font-weight: bold;">✅ Benchmark de Mercado: {datos_mercado["confianza"]}</h4>'
+                    html_ficha += f'<p style="font-size: 0.95em;"><b>Cargo buscado:</b> {cargo_para_busqueda.title()}</p>'
+                    html_ficha += f'<p style="font-size: 0.95em;"><b>Fuente principal:</b> {datos_mercado["fuente"]}</p>'
+                    html_ficha += f'<p style="font-size: 0.95em; margin-bottom: 0;"><b>Referencia original:</b> <a href="{datos_mercado["original_url"]}" target="_blank">Ver fuente en vivo</a></p>'
                     html_ficha += '<hr style="border-top: 1px solid rgba(11, 38, 89, 0.2); margin: 10px 0;">'
-                    html_ficha += '<p style="margin-bottom: 0; font-size: 0.85em; font-style: italic;">Este valor fue ingresado manualmente por el analista. Asegúrate de que proviene de fuentes verificadas.</p></div>'
+                    html_ficha += f'<p style="margin-bottom: 0; font-size: 0.85em; font-style: italic;">{datos_mercado["mensaje"]}</p></div>'
                 else:
                     html_ficha = '<div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 12px; border-left: 5px solid #F59E0B; box-shadow: 0 5px 15px rgba(0,0,0,0.05); color: #0b2659;">'
-                    html_ficha += '<h4 style="margin-top: 0; color: #F59E0B; font-weight: bold;">⏳ Pendiente de Investigación</h4>'
-                    html_ficha += f'<p style="font-size: 0.9em;">{datos_mercado["mensaje"]}</p>'
-                    html_ficha += '<hr style="border-top: 1px solid rgba(11, 38, 89, 0.2); margin: 10px 0;">'
-                    html_ficha += '<p style="margin-bottom: 0; font-size: 0.85em; font-style: italic;">Usa los enlaces de investigación de arriba para encontrar el dato real y luego ingrésalo en el campo de la izquierda.</p></div>'
+                    html_ficha += '<h4 style="margin-top: 0; color: #F59E0B; font-weight: bold;">⏳ Sin Datos Automáticos</h4>'
+                    html_ficha += f'<p style="font-size: 0.9em;">No pudimos detectar un valor exacto automáticamente. Por favor consulta los enlaces de abajo de respaldo.</p>'
+                    html_ficha += '</div>'
                 st.markdown(html_ficha, unsafe_allow_html=True)
+
+            # --- Sección de enlaces de respaldo/validación ---
+            st.markdown("<br>", unsafe_allow_html=True)
+            with st.expander("🔍 Ver fuentes de respaldo y validación (Glassdoor, Computrabajo, etc.)"):
+                enlaces = datos_mercado.get('enlaces_investigacion', [])
+                if enlaces:
+                    for enlace in enlaces:
+                        st.markdown(f"➜ **{enlace['fuente']}**: [{enlace['descripcion']}]({enlace['url']})")
 
             st.markdown("---")
             st.markdown("#### 🤖 Diagnóstico Estratégico frente a Competencia Nacional", unsafe_allow_html=True)
@@ -718,13 +709,13 @@ if archivo_cargado is not None:
                 diferencia_ext = analisis['salario_propuesto'] - salario_mercado_externo
                 pct_ext = (diferencia_ext / salario_mercado_externo) * 100
                 if pct_ext < -10:
-                    st.error(f"📉 **Desventaja vs Ecuador:** Nuestra propuesta final (USD {analisis['salario_propuesto']:,.2f}) está **{abs(pct_ext):.1f}% por debajo** del mercado nacional (USD {salario_mercado_externo:,.0f}). \n\n⚠️ **Riesgo:** Alta probabilidad de perder a este perfil frente a competidores directos del mercado ecuatoriano.")
+                    st.error(f"📉 **Desventaja vs Ecuador:** Nuestra propuesta final (USD {analisis['salario_propuesto']:,.2f}) está **{abs(pct_ext):.1f}% por debajo** del mercado nacional (USD {salario_mercado_externo:,.0f}). \n\n⚠️ **Riesgo:** Alta probabilidad de perder a este perfil frente a competidores directos.")
                 elif pct_ext > 10:
-                    st.warning(f"📈 **Por Encima del Mercado:** La propuesta está **{pct_ext:.1f}% superior** a la media nacional en Ecuador. \n\n🛡️ **Evaluación:** Estratégicamente garantiza alta retención de talento y exclusividad, pero incrementa costos operativos por encima del benchmark de la industria.")
+                    st.warning(f"📈 **Por Encima del Mercado:** La propuesta está **{pct_ext:.1f}% superior** a la media nacional en Ecuador. \n\n🛡️ **Evaluación:** Estratégicamente garantiza alta retención de talento, pero eleva costos operativos.")
                 else:
                     st.success(f"🎯 **Alineación Perfecta (Ecuador):** Nuestra propuesta (USD {analisis['salario_propuesto']:,.2f}) es equilibrada y competitiva (**±10%**) frente a los estándares del mercado ecuatoriano (USD {salario_mercado_externo:,.0f}).")
             else:
-                 st.info("ℹ️ Investiga el salario real del mercado usando los enlaces de arriba e ingresa el valor para obtener un diagnóstico basado en datos reales.")
+                 st.info("ℹ️ Ingresa o confirma un valor de mercado para obtener el diagnóstico estratégico.")
 
 
         # Dashboard Global removido según requerimiento
