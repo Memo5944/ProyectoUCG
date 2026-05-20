@@ -147,6 +147,44 @@ st.markdown("""
         background: #ef4444;
     }
     
+
+    /* ARCHIVO SUBIDO: Forzar amarillo #f2c72e con stroke blanco y texto visible. NO IMPORTA SI HAY THEME OSCURO. */
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] {
+        background-color: #f2c72e !important;
+        border: none !important;
+        border-radius: 6px !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] span,
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] p,
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] small {
+        color: #0b2659 !important; /* Azul para máximo contraste contra el mostaza */
+        font-weight: 800 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] svg {
+        color: #0b2659 !important;
+        fill: #0b2659 !important;
+        stroke: #0b2659 !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] button {
+        background-color: #f2c72e !important;
+        color: #0b2659 !important;
+        border: none !important;
+        font-weight: bold !important;
+    }
+    
+    /* INPUT NUMÉRICO Y NÚMEROS A COLOR CONTRASTANTE (ARREGLA LO NEGRO INVISIBLE) */
+    [data-testid="stNumberInput"] input {
+        color: #0b2659 !important;
+        background-color: #ffffff !important;
+        font-weight: bold !important;
+        border-radius: 4px;
+        border: 2px solid #f2c72e !important;
+    }
+    [data-testid="stNumberInput"] label {
+        color: #ffffff !important; /* asumiendo fondo oscuro o adaptativo */
+    }
+
     /* Elegante caja de descripción corporativa - Modo Claro */
     .chart-description {
         font-size: 0.85rem;

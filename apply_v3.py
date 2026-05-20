@@ -1,157 +1,13 @@
-import pandas as pd
+import sys
+import re
+import codecs
 
-def preparar_datos(df):
-    """
-    Estandariza los nombres de columnas, verifica obligatoriedad y calcula el Salario Total.
-    """
-    # Normalizar nombres de columnas a minúsculas
-    df.columns = [str(c).strip().lower() for c in df.columns]
-    
-    # Validar que existan todas las columnas requeridas estrictamente
-    columnas_requeridas = ['codigo', 'trabajador', 'cargo', 'area', 'antigüedad', 'edad', 'salario', 'he 25%', 'he 50%', 'he 100%']
-    columnas_faltantes = [col for col in columnas_requeridas if col not in df.columns]
-    
-    if len(columnas_faltantes) > 0:
-        faltantes_str = ", ".join([c.title() for c in columnas_faltantes]).replace('He', 'HE').replace('Area', 'Área').replace('Codigo', 'Código')
-        raise ValueError(f"Faltan las siguientes columnas en el archivo: {faltantes_str}. Verifica que los nombres sean exactamente los indicados.")
-        
-    df['salario_base_limpio'] = pd.to_numeric(df['salario'], errors='coerce').fillna(0)
+# 1. Update libreria_funciones.py
+lf_path = r'c:\Users\aramos\Desktop\JAER\Maestria\Repositorio\Github\ProyectoUCG\libreria_funciones.py'
+with codecs.open(lf_path, 'r', 'utf-8') as f:
+    lf_text = f.read()
 
-    # Sumar específicamente estas horas extras
-    df['total_horas_extras'] = (pd.to_numeric(df['he 25%'], errors='coerce').fillna(0) +
-                                pd.to_numeric(df['he 50%'], errors='coerce').fillna(0) +
-                                pd.to_numeric(df['he 100%'], errors='coerce').fillna(0))
-        
-    # Calcular salario total
-    df['salario_total'] = df['salario_base_limpio'] + df['total_horas_extras']
-            
-    # Convertir antigüedad a años si viene como fecha (dd/mm/aaaa) o datetime
-    col_antiguedad = 'antigüedad'
-    if col_antiguedad:
-        if pd.api.types.is_datetime64_any_dtype(df[col_antiguedad]):
-            df[col_antiguedad] = (pd.Timestamp('today') - df[col_antiguedad]).dt.days / 365.25
-        elif df[col_antiguedad].dtype == 'object':
-            try:
-                fechas = pd.to_datetime(df[col_antiguedad], format='%d/%m/%Y', errors='coerce')
-                # Si alguna fecha es válida, transformar la columna entera a años desde la fecha actual
-                if not fechas.isna().all():
-                    df[col_antiguedad] = (pd.Timestamp('today') - fechas).dt.days / 365.25
-            except Exception:
-                pass
-            
-        # Asegurar numérico en caso de que viniera texto raro o si ya se convirtió a años
-        df[col_antiguedad] = pd.to_numeric(df[col_antiguedad], errors='coerce').fillna(0)
-    
-    return df
-
-def obtener_metricas_cargo(df, cargo):
-    df_cargo = df[df['cargo'].str.lower() == cargo.lower()]
-    if df_cargo.empty:
-        return None
-    
-    return {
-        'mediana': df_cargo['salario_total'].median(),
-        'promedio': df_cargo['salario_total'].mean(),
-        'min': df_cargo['salario_total'].min(),
-        'max': df_cargo['salario_total'].max(),
-        'cantidad': len(df_cargo)
-    }
-
-def evaluar_incremento(salario_actual, porcentaje_incremento, porcentaje_inflacion):
-    salario_propuesto = salario_actual * (1 + (porcentaje_incremento / 100))
-    perdida_por_inflacion = salario_actual * (porcentaje_inflacion / 100)
-    salario_real_actual = salario_actual - perdida_por_inflacion
-    aumento_real = salario_propuesto - salario_actual
-    
-    return {
-        'salario_propuesto': salario_propuesto,
-        'salario_real_actual': salario_real_actual,
-        'perdida_inflacion': perdida_por_inflacion,
-        'aumento_real_monto': aumento_real
-    }
-
-def evaluar_incremento_detallado(datos_empleado, porcentaje_incremento, porcentaje_inflacion):
-    salario_total_actual = float(datos_empleado.get('salario_total', 0))
-    salario_base_actual = float(datos_empleado.get('salario_base_limpio', salario_total_actual))
-    
-    # Extraer horas extras evitando cualquier columna de 'total', 'salario' o 'base'
-    he_cols = [c for c in datos_empleado.index if ('he ' in str(c).lower() or 'hora' in str(c).lower() or 'extra' in str(c).lower())]
-    he_cols = [c for c in he_cols if 'total' not in str(c).lower() and 'salario' not in str(c).lower() and 'base' not in str(c).lower()]
-    
-    factor_incremento = 1 + (porcentaje_incremento / 100)
-    
-    desglose = []
-    
-    # Base
-    base_propuesto = salario_base_actual * factor_incremento
-    desglose.append({
-        'Rubro': 'Salario Base',
-        'Actual': salario_base_actual,
-        'Propuesto': base_propuesto,
-        'Diferencia': base_propuesto - salario_base_actual
-    })
-    
-    # Horas Extras Individuales
-    for col in he_cols:
-        try:
-            val_actual = float(datos_empleado.get(col, 0))
-            if val_actual > 0:
-                val_propuesto = val_actual * factor_incremento
-                desglose.append({
-                    'Rubro': str(col).upper(),
-                    'Actual': val_actual,
-                    'Propuesto': val_propuesto,
-                    'Diferencia': val_propuesto - val_actual
-                })
-        except Exception:
-            pass
-            
-    # Totales
-    salario_propuesto = salario_total_actual * factor_incremento
-    desglose.append({
-        'Rubro': 'TOTAL',
-        'Actual': salario_total_actual,
-        'Propuesto': salario_propuesto,
-        'Diferencia': salario_propuesto - salario_total_actual
-    })
-    
-    df_desglose = pd.DataFrame(desglose)
-    
-    perdida_por_inflacion = salario_total_actual * (porcentaje_inflacion / 100)
-    salario_real_actual = salario_total_actual - perdida_por_inflacion
-    aumento_real = salario_propuesto - salario_total_actual
-    
-    return {
-        'salario_propuesto': salario_propuesto,
-        'salario_real_actual': salario_real_actual,
-        'perdida_inflacion': perdida_por_inflacion,
-        'aumento_real_monto': aumento_real,
-        'df_desglose': df_desglose
-    }
-
-def obtener_metricas_cargos_multiples(df, cargos):
-    """
-    Obtiene métricas estadísticas (mediana, promedio, min, max) para una lista de cargos.
-    """
-    df_cargos = df[df['cargo'].str.lower().isin([c.lower() for c in cargos])]
-    if df_cargos.empty:
-        return None
-    
-    metricas = {
-        'mediana': df_cargos['salario_total'].median(),
-        'promedio': df_cargos['salario_total'].mean(),
-        'min': df_cargos['salario_total'].min(),
-        'max': df_cargos['salario_total'].max(),
-        'cantidad': len(df_cargos)
-    }
-    return metricas
-
-def calcular_compa_ratio(salario_total, mediana_cargo):
-    if not mediana_cargo or mediana_cargo == 0:
-        return 1.0
-    return salario_total / mediana_cargo
-
-def estimar_mercado_externo(cargo, mediana_interna):
+new_lf_func = '''def estimar_mercado_externo(cargo, mediana_interna):
     """
     Motor exacto de estimación salarial enfocado en empresas específicas de Ecuador,
     con URLs directas e información no generalizada.
@@ -325,3 +181,87 @@ def estimar_mercado_externo(cargo, mediana_interna):
         'fuente': 'N/A',
         'mensaje': 'Falta dato.'
     }
+'''
+lf_text = re.sub(r'def estimar_mercado_externo\(cargo, mediana_interna\):.*', new_lf_func, lf_text, flags=re.DOTALL)
+with codecs.open(lf_path, 'w', 'utf-8') as f:
+    f.write(lf_text)
+
+
+# 2. Update app.py
+app_path = r'c:\Users\aramos\Desktop\JAER\Maestria\Repositorio\Github\ProyectoUCG\app.py'
+with codecs.open(app_path, 'r', 'utf-8') as f:
+    app_text = f.read()
+
+# Fix CSS styling for inputs and uploader rigorously
+css_fix = """
+    /* ARCHIVO SUBIDO: Forzar amarillo #f2c72e con stroke blanco y texto visible. NO IMPORTA SI HAY THEME OSCURO. */
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] {
+        background-color: #f2c72e !important;
+        border: none !important;
+        border-radius: 6px !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] span,
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] p,
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] small {
+        color: #0b2659 !important; /* Azul para máximo contraste contra el mostaza */
+        font-weight: 800 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] svg {
+        color: #0b2659 !important;
+        fill: #0b2659 !important;
+        stroke: #0b2659 !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] button {
+        background-color: #f2c72e !important;
+        color: #0b2659 !important;
+        border: none !important;
+        font-weight: bold !important;
+    }
+    
+    /* INPUT NUMÉRICO Y NÚMEROS A COLOR CONTRASTANTE (ARREGLA LO NEGRO INVISIBLE) */
+    [data-testid="stNumberInput"] input {
+        color: #0b2659 !important;
+        background-color: #ffffff !important;
+        font-weight: bold !important;
+        border-radius: 4px;
+        border: 2px solid #f2c72e !important;
+    }
+    [data-testid="stNumberInput"] label {
+        color: #ffffff !important; /* asumiendo fondo oscuro o adaptativo */
+    }
+"""
+
+if "/* ARCHIVO SUBIDO:" not in app_text:
+    app_text = app_text.replace("    /* Elegante caja de descripción corporativa - Modo Claro */", css_fix + "\n    /* Elegante caja de descripción corporativa - Modo Claro */")
+
+# Add col_diag3 back to Tab 1 if it's missing!
+if "col_diag1, col_diag2 = st.columns(2)" in app_text:
+    app_text = app_text.replace("col_diag1, col_diag2 = st.columns(2)", "col_diag1, col_diag2, col_diag3 = st.columns([1, 1, 1.2])")
+    
+    diag3_code = """
+            with col_diag3:
+                st.markdown("##### 🌍 Mercado Local (Ecuador)")
+                if salario_mercado_estimado > 0:
+                    diferencia_ext = analisis['salario_propuesto'] - salario_mercado_estimado
+                    pct_ext = (diferencia_ext / salario_mercado_estimado) * 100
+                    if pct_ext < -10:
+                        st.error(f"📉 **Desventaja vs EC:** Propuesta ({analisis['salario_propuesto']:,.0f}) está **{abs(pct_ext):.1f}% debajo** del mercado nacional ({salario_mercado_estimado:,.0f}). Riesgo de pérdida frente a competidores directos ({datos_mercado['empresa_referencia']})")
+                    elif pct_ext > 10:
+                        st.warning(f"📈 **Media Superior:** Propuesta es **{pct_ext:.1f}% encima** de empresas locales en Ecuador. Garantiza retención de talento y exclusividad, pero incrementa costos por encima del bench ({salario_mercado_estimado:,.0f}).")
+                    else:
+                        st.success(f"🎯 **Alineado Ecuador:** Propuesta equilibrada y altamente competitiva frente a los estándares que maneja {datos_mercado['empresa_referencia']}.")
+                else:
+                    st.info("ℹ️ Investiga este cargo para un diagnóstico.")
+"""
+    app_text = re.sub(r'st\.success\(f"✅ \*\*Alineado \(CR: \{compa_ratio_actual:\.2f\}\):\*\* El salario base es competitivo frente a sus colegas\."\)', 
+                      'st.success(f"✅ **Alineado (CR: {compa_ratio_actual:.2f}):** El salario base es competitivo frente a sus colegas.")\n' + diag3_code,
+                      app_text)
+
+    # Remove duplicates from Tab2 (if any)
+    app_text = re.sub(r'st\.markdown\("#### 🤖 Diagnóstico Estratégico frente a Competencia Nacional", unsafe_allow_html=True\).*?st\.info\("ℹ️ Investiga e ingresa el salario de mercado para obtener un diagnóstico externo\."\)',
+                      '', app_text, flags=re.DOTALL)
+
+with codecs.open(app_path, 'w', 'utf-8') as f:
+    f.write(app_text)
+print("Fixes applied successfully!")
