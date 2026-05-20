@@ -16,53 +16,45 @@ st.set_page_config(
 # Estilo CSS personalizado para un look "Premium" (Glassmorphism & Neon Shadows)
 st.markdown("""
     <style>
-    /* Fondo corporativo Sudinco (Azul Marino Profundo) */
+    /* El fondo y colores generales ahora son manejados por .streamlit/config.toml */
+    /* Pero añadimos acentos estéticos premium corporativos */
+    
     .stApp {
-        background: linear-gradient(135deg, #0b2659 0%, #061530 100%);
-    }
-    .main {
-        background: transparent;
+        background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
     }
     
-    /* Barra lateral de filtros (Sidebar) */
-    [data-testid="stSidebar"] {
-        background-color: #061530 !important;
-        border-right: 3px solid #f2c72e !important;
-    }
-    
-    [data-testid="stSidebar"] * {
-        color: #E2E8F0; /* Asegurar que el texto sea blanco en el fondo azul */
-    }
-    
-    h1, h2, h3, h4, p, span, div, label {
-        color: #E2E8F0 !important;
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-    }
-    
-    /* Acentos corporativos en títulos (Amarillo Oro) */
+    /* Acentos corporativos en títulos */
     h1, h2, h3, h4 {
-        color: #f2c72e !important;
+        color: #0b2659 !important;
     }
     
     h1 {
         font-weight: 800;
         margin-bottom: 5px;
+        border-bottom: 3px solid #f2c72e;
+        display: inline-block;
+        padding-bottom: 5px;
     }
     
-    /* Estilos Premium para Tarjetas de KPI */
+    /* Borde amarillo en sidebar */
+    [data-testid="stSidebar"] {
+        border-right: 4px solid #f2c72e !important;
+    }
+    
+    /* Estilos Premium para Tarjetas de KPI (Light Mode) */
     .kpi-container {
         display: flex;
         gap: 20px;
         margin-bottom: 25px;
     }
     .kpi-card {
-        background: rgba(15, 23, 42, 0.4);
+        background: rgba(255, 255, 255, 0.9);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(242, 199, 46, 0.2);
+        border: 1px solid rgba(11, 38, 89, 0.1);
         padding: 20px;
         border-radius: 12px;
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         width: 100%;
         height: 140px; 
@@ -75,14 +67,14 @@ st.markdown("""
     .kpi-card:hover {
         transform: translateY(-5px);
         border-color: rgba(242, 199, 46, 0.8);
-        box-shadow: 0 20px 40px -10px rgba(242, 199, 46, 0.25);
+        box-shadow: 0 20px 30px -10px rgba(11, 38, 89, 0.15);
     }
     .kpi-title {
         font-size: 0.85rem;
-        color: #CBD5E0 !important;
+        color: #475569 !important;
         text-transform: uppercase;
         letter-spacing: 1px;
-        font-weight: 600;
+        font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -90,7 +82,7 @@ st.markdown("""
     .kpi-value {
         font-size: 1.9rem;
         font-weight: 800;
-        color: #ffffff !important;
+        color: #0b2659 !important;
         margin-top: 4px;
         white-space: nowrap;
         overflow: hidden;
@@ -110,21 +102,21 @@ st.markdown("""
     }
     .delta-neg {
         color: #ffffff !important;
-        background: #EF4444;
+        background: #ef4444;
     }
     
-    /* Elegante caja de descripción corporativa */
+    /* Elegante caja de descripción corporativa - Modo Claro */
     .chart-description {
         font-size: 0.85rem;
-        color: #E2E8F0 !important;
+        color: #334155 !important;
         margin-top: 15px;
         margin-bottom: 30px;
         line-height: 1.6;
-        background: rgba(11, 38, 89, 0.6);
+        background: #ffffff;
         padding: 15px 20px;
         border-radius: 8px;
         border-left: 4px solid #f2c72e;
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
     
     /* Fix global margins for columns */
@@ -134,7 +126,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def render_kpi_card(title, value, delta=None, delta_type="positive", border_color="#00D2D3"):
+def render_kpi_card(title, value, delta=None, delta_type="positive", border_color="#f2c72e"):
     delta_html = ""
     if delta:
         d_class = "delta-pos" if delta_type == "positive" else "delta-neg"
@@ -266,7 +258,7 @@ if archivo_cargado is not None:
                 # Fila de KPIs
                 c1, c2, c3, c4 = st.columns(4)
                 with c1:
-                    st.markdown(render_kpi_card("Salario Actual", f"USD {salario_actual:,.2f}", border_color="#00D2D3"), unsafe_allow_html=True)
+                    st.markdown(render_kpi_card("Salario Actual", f"USD {salario_actual:,.2f}", border_color="#f2c72e"), unsafe_allow_html=True)
                 with c2:
                     st.markdown(render_kpi_card("Salario Propuesto", f"USD {analisis['salario_propuesto']:,.2f}", f"+{aumento_solicitado}% (+USD {analisis['aumento_real_monto']:,.2f})", delta_type="positive", border_color="#48BB78"), unsafe_allow_html=True)
                 with c3:
@@ -285,7 +277,7 @@ if archivo_cargado is not None:
                     
                     def highlight_total(row):
                         if row['Rubro'] == 'TOTAL':
-                            return ['background-color: rgba(0, 210, 211, 0.2); font-weight: bold; color: white'] * len(row)
+                            return ['background-color: rgba(242, 199, 46, 0.3); font-weight: bold; color: #0b2659'] * len(row)
                         return [''] * len(row)
                         
                     formato_desglose = {
@@ -310,11 +302,11 @@ if archivo_cargado is not None:
                     mode = "gauge+number",
                     value = compa_ratio_actual,
                     domain = {'x': [0, 1], 'y': [0, 1]},
-                    title = {'text': "Compa-Ratio Actual", 'font': {'size': 14, 'color': "#E2E8F0"}},
-                    number = {'valueformat': ".2f", 'font': {'color': "#F8FAFC", 'size': 32}},
+                    title = {'text': "Compa-Ratio Actual", 'font': {'size': 14, 'color': "#0b2659"}},
+                    number = {'valueformat': ".2f", 'font': {'color': "#0b2659", 'size': 32}},
                     gauge = {
-                        'axis': {'range': [0.5, 1.5], 'tickwidth': 1, 'tickcolor': "white"},
-                        'bar': {'color': "#00D2D3"},
+                        'axis': {'range': [0.5, 1.5], 'tickwidth': 1, 'tickcolor': "#0b2659"},
+                        'bar': {'color': "#f2c72e"},
                         'bgcolor': "rgba(255,255,255,0.05)",
                         'borderwidth': 0,
                         'steps': [
@@ -329,7 +321,7 @@ if archivo_cargado is not None:
                         }
                     }
                 ))
-                fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=240, margin=dict(t=30, b=10, l=20, r=20))
+                fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#0b2659", height=240, margin=dict(t=30, b=10, l=20, r=20))
                 st.plotly_chart(fig_gauge, use_container_width=True)
                 
                 # Explicación del Compa-Ratio
@@ -365,7 +357,7 @@ if archivo_cargado is not None:
                             
                             fig_scatter.add_trace(go.Scatter(
                                 x=x_line, y=y_line, mode='lines',
-                                line=dict(color='rgba(255, 255, 255, 0.6)', dash='dash'),
+                                line=dict(color='rgba(11, 38, 89, 0.6)', dash='dash'),
                                 name='Tendencia Esperada'
                             ))
                             
@@ -384,7 +376,7 @@ if archivo_cargado is not None:
                     # Resaltar evaluado
                     fig_scatter.add_trace(go.Scatter(
                         x=[datos_empleado.get(col_antiguedad, 0)], y=[salario_actual], mode='markers+text',
-                        marker=dict(color='#EF4444', size=22, symbol='star', line=dict(color='white', width=2)),
+                        marker=dict(color='#EF4444', size=22, symbol='star', line=dict(color='#0b2659', width=2)),
                         text=[f"Eval: {trabajador_seleccionado}"], textposition="bottom center", name="Evaluado",
                         textfont=dict(color="#EF4444", size=12, weight="bold")
                     ))
@@ -392,13 +384,13 @@ if archivo_cargado is not None:
                     fig_scatter.update_layout(
                         plot_bgcolor="rgba(0,0,0,0)", 
                         paper_bgcolor="rgba(0,0,0,0)", 
-                        font_color="#E2E8F0", 
+                        font_color="#0b2659", 
                         height=240, 
                         margin=dict(t=20, b=20, l=20, r=20),
-                        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor="rgba(0,0,0,0.5)")
+                        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor="rgba(255,255,255,0.7)")
                     )
-                    fig_scatter.update_xaxes(gridcolor="rgba(255,255,255,0.1)")
-                    fig_scatter.update_yaxes(gridcolor="rgba(255,255,255,0.1)")
+                    fig_scatter.update_xaxes(gridcolor="rgba(11,38,89,0.1)")
+                    fig_scatter.update_yaxes(gridcolor="rgba(11,38,89,0.1)")
                     st.plotly_chart(fig_scatter, use_container_width=True)
                     
                     texto_analisis_scatter = f"<b>Interpretación:</b> Con {datos_empleado.get(col_antiguedad, 0):.1f} años de antigüedad, el sueldo busca respetar la curva de experiencia del equipo. Puntos muy por debajo de la zona sombreada alertan sobre un alto riesgo de rotación por falta de equidad."
@@ -416,7 +408,7 @@ if archivo_cargado is not None:
                 df_pares_local = df_pares_global.sort_values('salario_total', ascending=False).copy()
                 
                 # Resaltar al evaluado con otro color
-                df_pares_local['Color'] = ['#FF4B4B' if t == trabajador_seleccionado else '#00D2D3' for t in df_pares_local['trabajador']]
+                df_pares_local['Color'] = ['#FF4B4B' if t == trabajador_seleccionado else '#0b2659' for t in df_pares_local['trabajador']]
                 
                 fig_bar = px.bar(df_pares_local, x="trabajador", y="salario_total", 
                                  text="salario_total",
@@ -427,8 +419,8 @@ if archivo_cargado is not None:
                 fig_bar.add_hline(y=analisis['salario_propuesto'], line_dash="dash", line_color="#FF4B4B", annotation_text="Propuesto")
                 fig_bar.add_hline(y=mediana_cargo, line_dash="solid", line_color="#F59E0B", annotation_text="Mediana")
                 
-                fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="#E2E8F0", height=260, margin=dict(t=20, b=20, l=10, r=10))
-                fig_bar.update_yaxes(gridcolor="rgba(255,255,255,0.1)", range=[0, max(df_pares_local['salario_total'].max(), analisis['salario_propuesto']) * 1.25])
+                fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="#0b2659", height=260, margin=dict(t=20, b=20, l=10, r=10))
+                fig_bar.update_yaxes(gridcolor="rgba(11,38,89,0.1)", range=[0, max(df_pares_local['salario_total'].max(), analisis['salario_propuesto']) * 1.25])
                 st.plotly_chart(fig_bar, use_container_width=True)
                 
                 # Análisis de texto dinámico
@@ -445,18 +437,18 @@ if archivo_cargado is not None:
                                  labels={"cargo": "Cargo", "salario_total": "Salario Total (USD)"})
                 
                 # Líneas de referencia
-                fig_box.add_hline(y=salario_actual, line_dash="solid", line_color="#00D2D3", annotation_text="Actual")
+                fig_box.add_hline(y=salario_actual, line_dash="solid", line_color="#f2c72e", annotation_text="Actual")
                 fig_box.add_hline(y=analisis['salario_propuesto'], line_dash="dash", line_color="#FF4B4B", annotation_text="Propuesto")
                 
                 fig_box.update_layout(
                     plot_bgcolor="rgba(0,0,0,0)", 
                     paper_bgcolor="rgba(0,0,0,0)", 
-                    font_color="#E2E8F0", 
+                    font_color="#0b2659", 
                     height=260, 
                     margin=dict(t=20, b=20, l=10, r=10),
                     showlegend=False
                 )
-                fig_box.update_yaxes(gridcolor="rgba(255,255,255,0.1)")
+                fig_box.update_yaxes(gridcolor="rgba(11,38,89,0.1)")
                 st.plotly_chart(fig_box, use_container_width=True)
                 
                 texto_analisis_box = f"<b>Interpretación:</b> La 'caja' azul muestra dónde se concentra el 50% de los sueldos del mercado analizado. Los 'bigotes' marcan los extremos, y los puntos son colegas individuales. La <b>línea roja</b> te muestra cómo quedará la propuesta frente a la distribución general."
@@ -498,7 +490,7 @@ if archivo_cargado is not None:
             
             def highlight_selected(row):
                 if row['Empleado'] == trabajador_seleccionado:
-                    return ['background-color: rgba(239, 68, 68, 0.2); color: white; font-weight: bold'] * len(row)
+                    return ['background-color: rgba(239, 68, 68, 0.2); color: #0b2659; font-weight: bold'] * len(row)
                 return [''] * len(row)
                 
             formato_columnas = {
@@ -549,7 +541,7 @@ if archivo_cargado is not None:
                 else:
                     st.info("ℹ️ Utiliza las herramientas del panel izquierdo (Paso 5) para investigar e ingresar el salario del mercado externo y obtener este diagnóstico.")
 
-            st.markdown("<hr style='border: 2px solid #00D2D3; margin: 50px 0;'>", unsafe_allow_html=True)
+            st.markdown("<hr style='border: 2px solid #f2c72e; margin: 50px 0;'>", unsafe_allow_html=True)
 
         # Dashboard Global removido según requerimiento
 
