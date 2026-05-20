@@ -192,6 +192,30 @@ def generar_enlaces_investigacion(cargo):
 
 import statistics
 
+def _es_valor_sbu_generico(valor, titulo, snippet, cargo_base):
+    """
+    Detecta si el valor es el SBU general (482) sin contexto de categoría específica.
+    Retorna True si debe rechazarse (es genérico).
+    """
+    texto = (titulo + " " + snippet).lower()
+    
+    # Valores SBU históricos en Ecuador
+    valores_sbu = [420, 425, 430, 440, 450, 460, 470, 480, 482, 485, 490, 500]
+    
+    if valor not in valores_sbu:
+        return False
+    
+    # Si está explícitamente en tabla sectorial o categoría, no es genérico
+    if any(x in texto for x in ['tabla sectorial', 'categoría', 'categoria', 'quinta categoria', 'quinta categoría']):
+        return False
+    
+    # Si menciona "salario mínimo general" o "básico unificado" sin especificidad
+    if any(x in texto for x in ['salario mínimo general', 'sbu', 'básico unificado general']):
+        return True
+    
+    return False
+
+
 def _calcular_score_evidencia(valor, titulo, snippet, cargo_base):
     """
     Calcula un score de confianza para cada evidencia detectada.
@@ -201,26 +225,35 @@ def _calcular_score_evidencia(valor, titulo, snippet, cargo_base):
     texto = (titulo + " " + snippet).lower()
     cargo_lower = cargo_base.lower()
     
-    # Detectar contexto de tabla sectorial oficial (Mayor score)
-    if any(x in texto for x in ['tabla sectorial', 'categoría quinta', 'categoria quinta', 'quinta categoria', 'ministerio trabajo']):
-        score += 50
+    # MÁXIMA PRIORIDAD: Contexto de tabla sectorial oficial
+    if any(x in texto for x in ['tabla sectorial', 'salarios sectoriales', 'ministerio trabajo']):
+        score += 60  # Máxima confianza
+        
+        # Bonus si menciona categoría específica
+        if any(x in texto for x in ['quinta', 'categoría quinta', 'categoria quinta']):
+            score += 15
+        
+        return score
     
-    # Detectar si el cargo aparece en el contexto (20 puntos)
+    # Bonus si el cargo específico aparece en contexto de categoría
+    if cargo_lower in texto and any(x in texto for x in ['categoría', 'categoria', 'quinta', 'salario sectorial']):
+        score += 35
+        return score
+    
+    # Contexto de oferta laboral (Computrabajo, etc.)
+    if any(x in texto for x in ['computrabajo', 'oferta de empleo', 'vacante', 'puesto disponible']):
+        if cargo_lower in texto:
+            score += 25
+        else:
+            score += 10
+    
+    # Si solo menciona el cargo en contexto neutral
     if cargo_lower in texto:
-        score += 20
-    
-    # Si el título menciona tabla/categoría (15 puntos)
-    if any(x in titulo for x in ['tabla', 'salarial', 'categoria', 'categoría']):
         score += 15
     
-    # Si hay mención de "supervisor" + contexto de categoría (valor específico)
-    if 'supervisor' in texto and any(x in texto for x in ['categoría', 'categoria', 'quinta', 'quinta categoría']):
-        score += 25
-    
-    # Penalizar si es solo el SBU general (salario mínimo)
-    if any(x in texto for x in ['salario mínimo general', 'básico unificado', 'sbu general']):
-        if 'categoría' not in texto and 'tabla sectorial' not in texto:
-            score -= 30
+    # Penalización: Valor genérico sin especificidad
+    if _es_valor_sbu_generico(valor, titulo, snippet, cargo_base):
+        score -= 100  # Rechazo completo
     
     return score
 
@@ -236,13 +269,13 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     
     # Queries estratégicas: tabla sectorial primero
     search_queries = [
-        f'tabla sectorial {cargo_base} categoría ecuador',
-        f'{cargo_base} quinta categoria salario ecuador',
-        f'ministerio trabajo salarios {cargo_base} ecuador',
+        f'tabla de salarios sectoriales {cargo_base} categoría quinta 2026 ecuador',
+        f'tabla sectorial salarios minimos {cargo_base} quinta',
+        f'ministerio trabajo ecuador salarios sectoriales {cargo_base}',
+        f'{cargo_base} quinta categoría sueldo ecuador',
+        f'tabla sectorial {cargo_base} ecuador',
         f'sueldo {cargo_base} ecuador',
-        f'cuanto gana {cargo_base} en ecuador',
-        f'salario promedio {cargo_base} ecuador',
-        f'site:computrabajo.com.ec {cargo_base} salario',
+        f'site:computrabajo.com.ec {cargo_base}',
     ]
     
     headers = {
@@ -276,18 +309,24 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                     
                     full_text = (title + " " + snippet).lower()
                     
-                    # Extracción inteligente de valores con contexto
-                    # Patrón 1: Tabla/Categoría + Cargo + Número
-                    patron_tabla = r'(?:quinta|categoría|categoria)\D{0,80}' + re.escape(cargo_base.lower()) + r'\D{0,80}([\d\.,]{3,6})'
-                    matches_tabla = list(re.finditer(patron_tabla, full_text))
+                    # Extracción inteligente de valores con múltiples patrones
                     
-                    # Patrón 2: Cargo + Número general
+                    # Patrón 1: Contexto de tabla sectorial (muy específico)
+                    # "categoría quinta | supervisor | 559,51"
+                    patron_tabla_flexible = r'(?:quinta|categoría|categoria)\s*(?:categoría|categoria)?\s*\D{0,150}([\d\.,]{3,6})'
+                    matches_tabla = list(re.finditer(patron_tabla_flexible, full_text))
+                    
+                    # Patrón 2: Cargo + "categoría" + número
+                    patron_cargo_categoria = cargo_base.lower() + r'\s*(?:categoría|categoria)\s*(?:quinta)?\s*\D{0,50}([\d\.,]{3,6})'
+                    matches_cargo_cat = list(re.finditer(patron_cargo_categoria, full_text))
+                    
+                    # Patrón 3: Números estándar (sueldo, salario, etc.)
                     regex_patrones = [
                         r'(?:sueldo|salario|remuneración|pagamos|usd|\$)\D{0,40}([\d\.,]{3,6})',
                         r'([\d\.,]{3,6})\D{0,40}(?:usd|dólares|mensuales|mensual)'
                     ]
                     
-                    todos_matches = matches_tabla.copy()
+                    todos_matches = matches_tabla + matches_cargo_cat
                     for p in regex_patrones:
                         todos_matches.extend(list(re.finditer(p, full_text)))
                     
@@ -314,8 +353,8 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                         # Calcular score de confianza
                         score = _calcular_score_evidencia(v, title, snippet, cargo_base)
                         
-                        # Rechazar si score es muy negativo
-                        if score < -20:
+                        # Rechazar si score indica valor genérico o sin contexto
+                        if score < 0:
                             continue
                         
                         # Excluir páginas agregadoras de estadísticas
