@@ -671,7 +671,7 @@ if archivo_cargado is not None:
             st.markdown("#### 📋 Evidencias Verificables (Ofertas Detectadas)")
             if datos_mercado['evidencias']:
                 df_evidencias = pd.DataFrame(datos_mercado['evidencias'])
-                df_evidencias.columns = ['Empresa / Portal', 'Cargo / Título de Oferta', 'Sueldo Mensual (USD)', 'Enlace de la Oferta']
+                df_evidencias.columns = ['Portal/Fuente', 'Empresa que Solicitante', 'Cargo y Detalles', 'Sueldo Mensual (USD)', 'Enlace de la Oferta']
                 
                 # Mostrar tabla interactiva (links y moneda)
                 st.dataframe(

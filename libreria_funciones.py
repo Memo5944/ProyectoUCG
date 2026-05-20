@@ -312,28 +312,22 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     
     # Queries estratégicas: específicas a portales reales de empleo
     search_queries = [
-        # Computrabajo (portal más importante para Ecuador)
-        f'site:computrabajo.com.ec "{cargo_base}" sueldo',
-        f'site:computrabajo.com.ec {cargo_base} salario 2026',
-        f'site:computrabajo.com.ec {cargo_base} ecuador',
+        # Computrabajo y orgánicas con palabras clave de dinero para forzar snipets visibles
+        f'site:computrabajo.com.ec "{cargo_base}" USD',
+        f'site:computrabajo.com.ec {cargo_base} dólares',
+        f'site:computrabajo.com.ec {cargo_base} salario ecuador',
+        f'site:linkedin.com/jobs "{cargo_base}" ecuador salario',
+        f'site:talent.com {cargo_base} ecuador salario',
         
-        # LinkedIn
-        f'site:linkedin.com "{cargo_base}" salario ecuador',
-        f'site:linkedin.com {cargo_base} salary ecuador',
+        # Búsqueda abierta inteligente
+        f'"{cargo_base}" ecuador oferta empleo USD',
+        f'"{cargo_base}" salario mensual ecuador',
         
-        # Glassdoor
-        f'site:glassdoor.com {cargo_base} ecuador sueldo',
-        f'site:glassdoor.com {cargo_base} salary ecuador',
+        # Glassdoor lo dejamos al final
+        f'site:glassdoor.com "{cargo_base}" ecuador',
         
-        # Multitrabajo
-        f'site:multitrabajo.com {cargo_base} ecuador',
-        
-        # Indeed
-        f'site:indeed.com {cargo_base} ecuador salario',
-        
-        # Tabla sectorial como respaldo
+        # Tablas sectoriales
         f'tabla sectorial {cargo_base} categoría quinta ecuador',
-        f'tabla de salarios sectoriales {cargo_base} 2026',
     ]
     
     headers = {
@@ -380,13 +374,18 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                     
                     # Patrón 3: Números estándar (sueldo, salario, etc.)
                     regex_patrones = [
-                        r'(?:sueldo|salario|remuneración|pagamos|usd|\$)\D{0,40}([\d\.,]{3,6})',
-                        r'([\d\.,]{3,6})\D{0,40}(?:usd|dólares|mensuales|mensual)'
+                        r'(?:sueldo|salario|remuneración|pagamos|usd|usd\$|\$|us\$)\s*(?:de)?\s*([\d\.,]{3,6})',
+                        r'([\d\.,]{3,6})\s*(?:usd|dólares|mensuales|mensual|\$|al mes)',
+                        r'(?:ofrecemos|oferta|ingreso)\s*(?:de)?\s*(?:\$|usd)?\s*([\d\.,]{3,6})',
                     ]
                     
                     todos_matches = matches_tabla + matches_cargo_cat
                     for p in regex_patrones:
                         todos_matches.extend(list(re.finditer(p, full_text)))
+                        
+                    # Emergencia para Computrabajo
+                    if len(todos_matches) == 0 and "computrabajo" in link.lower():
+                        todos_matches.extend(list(re.finditer(r'(?:\$|usd)\s*([\d\.,]{3,6})', full_text)))
                     
                     for m in todos_matches:
                         raw_val = m.group(1)
@@ -435,11 +434,31 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                                 portal = domain
                             except:
                                 pass
+                                
+                        # Extracción Inteligente de la EMPRESA CONTRATANTE
+                        empresa_contratante = "Oculta / Confidencial"
+                        t_str = title.strip()
+                        # Extraer si dice "en [Empresa]"
+                        m_en = re.search(r'\s+en\s+([A-Z][a-zA-Z0-9\s\&]+?)(?:,|-|\z)', t_str)
+                        if m_en and len(m_en.group(1).strip()) > 3:
+                            empresa_contratante = m_en.group(1).strip()
+                        
+                        # Extraer por separación "-" típico de Computrabajo
+                        if empresa_contratante == "Oculta / Confidencial" and "-" in t_str:
+                            parts = [p.strip() for p in t_str.split("-")]
+                            if len(parts) >= 3 and any("computrabajo" in p.lower() for p in parts):
+                                # Generalmente es el Segundo Elemento
+                                if "oferta" not in parts[1].lower() and "empleo" not in parts[1].lower():
+                                    empresa_contratante = parts[1]
+                        
+                        if "computrabajo" in empresa_contratante.lower() or "indeed" in empresa_contratante.lower() or len(empresa_contratante) > 35:
+                            empresa_contratante = "Confidencial / Empresa de Selección"
                         
                         # Evitar duplicados
-                        if not any(abs(e['valor'] - v) < 5 for e in todas_evidencias):
+                        if not any(abs(e['valor'] - v) < 5 and e['empresa'] == portal for e in todas_evidencias):
                             todas_evidencias.append({
                                 "empresa": portal,
+                                "empresa_contrata": empresa_contratante,
                                 "cargo_hallado": title[:100].strip() + ("..." if len(title) > 100 else ""),
                                 "valor": round(v, 2),
                                 "url": link,
