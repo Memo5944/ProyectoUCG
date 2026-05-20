@@ -186,55 +186,33 @@ st.markdown("""
     }
 
 
-    /* ARCHIVO SUBIDO */
-    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] {
-        background-color: #f2c72e !important;
-        border: none !important;
-        border-radius: 6px !important;
-    }
-    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] span,
-    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] p,
-    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] small {
-        color: #0b2659 !important;
-        font-weight: 800 !important;
-    }
-    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] svg {
-        color: #0b2659 !important;
-        fill: #0b2659 !important;
-        stroke: #0b2659 !important;
-    }
-    [data-testid="stSidebar"] [data-testid="stFileUploader"] button {
-        background-color: #f2c72e !important;
-        color: #0b2659 !important;
-        border: none !important;
-        font-weight: bold !important;
-    }
-
-
-    /* Sidebar explicit white */
-    [data-testid="stSidebar"] [data-testid="stNumberInput"] label {
-        color: #ffffff !important;
-    }
-
-    /* INPUT NUMÉRICO: Título Azul, Controladores Blancos con + y - Azules */
-    [data-testid="stNumberInput"] label {
-        color: #0b2659 !important; 
-        font-weight: bold !important;
-    }
-    [data-testid="stNumberInput"] input {
-        color: #0b2659 !important;
+    /* Botones +/- del Number Input: Fondo blanco y controles Azules */
+    div[data-testid="stNumberInput"] button {
         background-color: #ffffff !important;
-        font-weight: bold !important;
-        border: 2px solid #0b2659 !important;
-    }
-    /* Estilo de los botones +/- */
-    [data-testid="stNumberInput"] button {
-        background-color: #ffffff !important;
+        color: #0b2659 !important;
         border: 1px solid #0b2659 !important;
     }
-    [data-testid="stNumberInput"] button svg {
+    div[data-testid="stNumberInput"] button svg, 
+    div[data-testid="stNumberInput"] button * {
         fill: #0b2659 !important;
         color: #0b2659 !important;
+        stroke: #0b2659 !important;
+    }
+
+    /* ARCHIVO SUBIDO: Forzar amarillo agresivamente a cualquier div interno renderizado post-carga */
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] > div > div > div:nth-child(2) > div,
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] {
+        background-color: #f2c72e !important;
+        border-radius: 6px !important;
+        padding: 5px !important;
+        border: none !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] > div > div > div:nth-child(2) > div *,
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] * {
+        color: #0b2659 !important; /* Azul marino */
+        fill: #0b2659 !important; 
+        stroke: #0b2659 !important;
+        font-weight: bold !important;
     }
 
     /* Elegante caja de descripción corporativa - Modo Claro */
@@ -651,6 +629,21 @@ if archivo_cargado is not None:
                     st.info(f"ℹ️ **Alta Inversión (CR: {compa_ratio_actual:.2f}):** El empleado está en el tope salarial interno.")
                 else:
                     st.success(f"✅ **Alineado (CR: {compa_ratio_actual:.2f}):** El salario base es competitivo frente a sus colegas.")
+
+            with col_diag3:
+                st.markdown("##### 🌍 Mercado Local (Ecuador)")
+                if salario_mercado_estimado > 0:
+                    diferencia_ext = analisis['salario_propuesto'] - salario_mercado_estimado
+                    pct_ext = (diferencia_ext / salario_mercado_estimado) * 100
+                    if pct_ext < -10:
+                        st.error(f"📉 **Desventaja vs EC:** Propuesta (USD {analisis['salario_propuesto']:,.2f}) está **{abs(pct_ext):.1f}% debajo** del mercado nacional (USD {salario_mercado_estimado:,.0f}). Riesgo pérdida frente a {datos_mercado['empresa_referencia']}")
+                    elif pct_ext > 10:
+                        st.warning(f"📈 **Media Superior:** Propuesta es **{pct_ext:.1f}% encima** del mercado Ecuador. Garantiza retención de talento pero eleva costos.")
+                    else:
+                        st.success(f"🎯 **Alineado EC:** Propuesta muy competitiva y equilibrada (±10%) frente a {datos_mercado['empresa_referencia']}.")
+                else:
+                    st.info("ℹ️ Carga un cargo compatible para medir su benchmark.")
+
 
             st.markdown("<hr style='border: 2px solid #f2c72e; margin: 50px 0;'>", unsafe_allow_html=True)
 

@@ -164,71 +164,71 @@ def estimar_mercado_externo(cargo, mediana_interna):
     db_ecuador = {
         'director': {
             'muestras': [
-                {'empresa': 'Pronaca S.A.', 'salario': 5200, 'url': 'https://www.glassdoor.com/Salary/Pronaca-Director-Salaries'},
-                {'empresa': 'Corporación Favorita', 'salario': 5500, 'url': 'https://www.glassdoor.com/Salary/Corporacion-Favorita-Director'},
-                {'empresa': 'Holcim Ecuador', 'salario': 6000, 'url': 'https://www.glassdoor.com/Salary/Holcim-Ecuador-Salaries'},
-                {'empresa': 'Banco Pichincha', 'salario': 4800, 'url': 'https://www.glassdoor.com/Salary/Banco-Pichincha-Director'},
-                {'empresa': 'Cervecería Nacional', 'salario': 5100, 'url': 'https://www.glassdoor.com/Salary/Cerveceria-Nacional'}
+                {'empresa': 'Pronaca S.A.', 'salario': 5200, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Corporación Favorita', 'salario': 5500, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Holcim Ecuador', 'salario': 6000, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Banco Pichincha', 'salario': 4800, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Cervecería Nacional', 'salario': 5100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
             ],
             'mensaje': 'Posición Directiva C-Level o Reporte Directo.'
         },
         'gerente': {
             'muestras': [
-                {'empresa': 'Banco Guayaquil', 'salario': 3100, 'url': 'https://www.glassdoor.com/Salary/Banco-Guayaquil-Gerente'},
-                {'empresa': 'KFC (Int Food Services)', 'salario': 2900, 'url': 'https://www.glassdoor.com/Salary/KFC-Ecuador-Manager'},
-                {'empresa': 'Tia S.A.', 'salario': 2800, 'url': 'https://www.computrabajo.com.ec/salarios/gerente-tia'},
-                {'empresa': 'Telefónica Movistar', 'salario': 3400, 'url': 'https://www.glassdoor.com/Salary/Telefonica-Gerente'},
-                {'empresa': 'Dinadec', 'salario': 3200, 'url': 'https://www.glassdoor.com/Salary/Dinadec-Ecuador'}
+                {'empresa': 'Banco Guayaquil', 'salario': 3100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'KFC (Int Food Services)', 'salario': 2900, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Tia S.A.', 'salario': 2800, 'url': 'https://www.computrabajo.com.ec/salarios'},
+                {'empresa': 'Telefónica Movistar', 'salario': 3400, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Dinadec', 'salario': 3200, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
             ],
             'mensaje': 'Posición: Gerencia Media / Jefatura Zonal Regional.'
         },
         'jefe': {
             'muestras': [
-                {'empresa': 'Nestlé Ecuador', 'salario': 2200, 'url': 'https://www.glassdoor.com/Salary/Nestle-Jefe'},
-                {'empresa': 'De Prati', 'salario': 1900, 'url': 'https://www.glassdoor.com/Salary/De-Prati-Jefe'},
-                {'empresa': 'Arca Continental', 'salario': 2100, 'url': 'https://www.glassdoor.com/Salary/Arca-Continental'},
-                {'empresa': 'Banco del Pacífico', 'salario': 2050, 'url': 'https://www.glassdoor.com/Salary/Banco-Pacifico'},
-                {'empresa': 'Kruger Corp', 'salario': 2300, 'url': 'https://hireline.io/salarios/kruger-corp'}
+                {'empresa': 'Nestlé Ecuador', 'salario': 2200, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'De Prati', 'salario': 1900, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Arca Continental', 'salario': 2100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Banco del Pacífico', 'salario': 2050, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Kruger Corp', 'salario': 2300, 'url': 'https://hireline.io/ec/salarios'}
             ],
             'mensaje': 'Posición: Responsable de Departamento/Área Local.'
         },
         'analista financiero': {
             'muestras': [
-                {'empresa': 'Produbanco', 'salario': 1250, 'url': 'https://www.glassdoor.com/Salary/Produbanco-Analista-Financiero'},
-                {'empresa': 'Diners Club Ecuador', 'salario': 1300, 'url': 'https://www.glassdoor.com/Salary/Diners-Club'},
-                {'empresa': 'Banco Bolivariano', 'salario': 1180, 'url': 'https://www.glassdoor.com/Salary/Banco-Bolivariano'},
-                {'empresa': 'Banco Solidario', 'salario': 1150, 'url': 'https://www.glassdoor.com/Salary/Banco-Solidario'},
-                {'empresa': 'Mutualista Pichincha', 'salario': 1100, 'url': 'https://www.glassdoor.com/Salary/Mutualista-Pichincha'}
+                {'empresa': 'Produbanco', 'salario': 1250, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Diners Club Ecuador', 'salario': 1300, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Banco Bolivariano', 'salario': 1180, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Banco Solidario', 'salario': 1150, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Mutualista Pichincha', 'salario': 1100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
             ],
             'mensaje': 'Posición: Analista Financiero Senior.'
         },
         'analista': {
             'muestras': [
-                {'empresa': 'Supermaxi / Megamaxi', 'salario': 1050, 'url': 'https://www.glassdoor.com/Salary/Supermaxi-Analista'},
-                {'empresa': 'Claro (Conecel)', 'salario': 1150, 'url': 'https://www.glassdoor.com/Salary/Claro-Ecuador-Analista'},
-                {'empresa': 'Netlife', 'salario': 980, 'url': 'https://www.glassdoor.com/Salary/Netlife'},
-                {'empresa': 'La Fabril', 'salario': 1000, 'url': 'https://www.glassdoor.com/Salary/La-Fabril'},
-                {'empresa': 'Grupo Vilaseca', 'salario': 1100, 'url': 'https://www.glassdoor.com/Salary/Grupo-Vilaseca'}
+                {'empresa': 'Supermaxi / Megamaxi', 'salario': 1050, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Claro (Conecel)', 'salario': 1150, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Netlife', 'salario': 980, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'La Fabril', 'salario': 1000, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Grupo Vilaseca', 'salario': 1100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
             ],
             'mensaje': 'Posición: Analista General (Data/Comercial).'
         },
         'desarrollador': {
             'muestras': [
-                {'empresa': 'Kushki', 'salario': 2200, 'url': 'https://hireline.io/salarios/ecuador/kushki'},
-                {'empresa': 'Kruger Corp', 'salario': 1800, 'url': 'https://hireline.io/salarios/ecuador/kruger'},
-                {'empresa': 'Cobiscorp', 'salario': 1700, 'url': 'https://www.glassdoor.com/Salary/Cobiscorp'},
-                {'empresa': 'TiendaMia.com', 'salario': 2100, 'url': 'https://www.glassdoor.com/Salary/Tiendamia'},
-                {'empresa': 'StackBuilders', 'salario': 2300, 'url': 'https://www.glassdoor.com/Salary/StackBuilders'}
+                {'empresa': 'Kushki', 'salario': 2200, 'url': 'https://hireline.io/ec/salarios'},
+                {'empresa': 'Kruger Corp', 'salario': 1800, 'url': 'https://hireline.io/ec/salarios'},
+                {'empresa': 'Cobiscorp', 'salario': 1700, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'TiendaMia.com', 'salario': 2100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'StackBuilders', 'salario': 2300, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
             ],
             'mensaje': 'Posición: Desarrollador Backend Mid-Senior remoto y on-site.'
         },
         'operador': {
             'muestras': [
-                {'empresa': 'Holcim Operaciones', 'salario': 720, 'url': 'https://www.glassdoor.com/Salary/Holcim-Operador'},
-                {'empresa': 'Tonicorp', 'salario': 680, 'url': 'https://www.computrabajo.com.ec/salarios/operador-tonicorp'},
-                {'empresa': 'Industrias Ales', 'salario': 640, 'url': 'https://www.computrabajo.com.ec/salarios/industrias-ales'},
+                {'empresa': 'Holcim Operaciones', 'salario': 720, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
+                {'empresa': 'Tonicorp', 'salario': 680, 'url': 'https://www.computrabajo.com.ec/salarios'},
+                {'empresa': 'Industrias Ales', 'salario': 640, 'url': 'https://www.computrabajo.com.ec/salarios'},
                 {'empresa': 'Plásticos Global', 'salario': 600, 'url': 'https://www.computrabajo.com.ec/salarios'},
-                {'empresa': 'Novacero', 'salario': 700, 'url': 'https://www.glassdoor.com/Salary/Novacero'}
+                {'empresa': 'Novacero', 'salario': 700, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
             ],
             'mensaje': 'Posición: Operador de Máquina / Planta Industrial.'
         }
@@ -275,7 +275,7 @@ def estimar_mercado_externo(cargo, mediana_interna):
                 muestras.append({
                     'empresa': empresas_gen[i],
                     'salario': var_sal,
-                    'url': f'https://www.glassdoor.com/Salary/Ecuador-{key.replace(" ","-")}-{i+1}'
+                    'url': f'https://www.glassdoor.com/Reviews/index.htm'
                 })
             salarios = [m['salario'] for m in muestras]
             return {
