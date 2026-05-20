@@ -185,6 +185,58 @@ st.markdown("""
         color: #ffffff !important; /* asumiendo fondo oscuro o adaptativo */
     }
 
+
+    /* ARCHIVO SUBIDO */
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] {
+        background-color: #f2c72e !important;
+        border: none !important;
+        border-radius: 6px !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] span,
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] p,
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] small {
+        color: #0b2659 !important;
+        font-weight: 800 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stUploadedFile"] svg {
+        color: #0b2659 !important;
+        fill: #0b2659 !important;
+        stroke: #0b2659 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] button {
+        background-color: #f2c72e !important;
+        color: #0b2659 !important;
+        border: none !important;
+        font-weight: bold !important;
+    }
+
+
+    /* Sidebar explicit white */
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] label {
+        color: #ffffff !important;
+    }
+
+    /* INPUT NUMÉRICO: Título Azul, Controladores Blancos con + y - Azules */
+    [data-testid="stNumberInput"] label {
+        color: #0b2659 !important; 
+        font-weight: bold !important;
+    }
+    [data-testid="stNumberInput"] input {
+        color: #0b2659 !important;
+        background-color: #ffffff !important;
+        font-weight: bold !important;
+        border: 2px solid #0b2659 !important;
+    }
+    /* Estilo de los botones +/- */
+    [data-testid="stNumberInput"] button {
+        background-color: #ffffff !important;
+        border: 1px solid #0b2659 !important;
+    }
+    [data-testid="stNumberInput"] button svg {
+        fill: #0b2659 !important;
+        color: #0b2659 !important;
+    }
+
     /* Elegante caja de descripción corporativa - Modo Claro */
     .chart-description {
         font-size: 0.85rem;
@@ -621,15 +673,24 @@ if archivo_cargado is not None:
                 st.markdown(render_kpi_card("Mediana Externa (Referencial)", f"USD {salario_mercado_externo:,.0f}", border_color="#0b2659"), unsafe_allow_html=True)
                 
             with t2_c2:
-                # Ficha de calidad de datos CEO Level
+                # Ficha de calidad de datos CEO Level (5 sources)
                 html_ficha = f"""
                 <div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 12px; border-left: 5px solid #0b2659; box-shadow: 0 5px 15px rgba(0,0,0,0.05); color: #0b2659;">
-                    <h4 style="margin-top: 0; color: #0b2659; font-weight: bold;">📑 Ficha Técnica Comercial (Ecuador)</h4>
-                    <p style="margin-bottom: 5px;"><b>🏢 Empresas de Referencia:</b> {datos_mercado['empresa_referencia']}</p>
-                    <p style="margin-bottom: 5px;"><b>📊 Fuentes Contrastadas:</b> {datos_mercado['fuente']}</p>
-                    <p style="margin-bottom: 5px;"><b>✅ Nivel de Confianza:</b> {datos_mercado['confianza']}</p>
+                    <h4 style="margin-top: 0; color: #0b2659; font-weight: bold;">📑 Respaldo Técnico (5 Muestras Exactas)</h4>
+                """
+                
+                if len(datos_mercado.get('muestras', [])) > 0:
+                    html_ficha += "<ul style='margin-bottom: 10px; font-size: 0.9em;'>"
+                    for i, m in enumerate(datos_mercado['muestras']):
+                        html_ficha += f"<li><b>{m['empresa']}:</b> USD {m['salario']:,.0f} <a href='{m['url']}' target='_blank' style='color:#f2c72e;text-decoration:none;'>[Enlace]</a></li>"
+                    html_ficha += "</ul>"
+                else:
+                    html_ficha += "<p>Sin datos detallados.</p>"
+
+                html_ficha += f"""
+                    <p style="margin-bottom: 5px; font-size: 0.9em;"><b>✅ Confianza Estadística:</b> {datos_mercado['confianza']}</p>
                     <hr style="border-top: 1px solid rgba(11, 38, 89, 0.2); margin: 10px 0;">
-                    <p style="margin-bottom: 0; font-size: 0.9em; font-style: italic;">{datos_mercado['mensaje']}</p>
+                    <p style="margin-bottom: 0; font-size: 0.85em; font-style: italic;">{datos_mercado['mensaje']}</p>
                 </div>
                 """
                 st.markdown(html_ficha, unsafe_allow_html=True)
