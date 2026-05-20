@@ -312,10 +312,11 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     
     # Queries estratégicas: específicas a portales reales de empleo
     search_queries = [
-        # Computrabajo y orgánicas con palabras clave de dinero para forzar snipets visibles
-        f'site:computrabajo.com.ec "{cargo_base}" USD',
-        f'site:computrabajo.com.ec {cargo_base} dólares',
-        f'site:computrabajo.com.ec {cargo_base} salario ecuador',
+        # Computrabajo Ecuador usa 'ec.computrabajo.com'
+        f'site:ec.computrabajo.com "{cargo_base}" USD',
+        f'site:ec.computrabajo.com {cargo_base} dólares',
+        f'site:ec.computrabajo.com {cargo_base} salario',
+        f'computrabajo ecuador "{cargo_base}" USD', # Forma orgánica como respaldo
         f'site:linkedin.com/jobs "{cargo_base}" ecuador salario',
         f'site:talent.com {cargo_base} ecuador salario',
         
