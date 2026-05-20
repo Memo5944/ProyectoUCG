@@ -269,17 +269,26 @@ def _calcular_score_evidencia(valor, titulo, snippet, cargo_base):
         
         return score
     
+    # ALTO SCORE: Portales de empleo reconocidos
+    portales_bonus = {
+        'computrabajo': 40,
+        'linkedin': 35,
+        'glassdoor': 35,
+        'indeed': 30,
+        'multitrabajo': 30,
+        'talent.com': 25,
+        'jooble': 25,
+    }
+    
+    for portal, bonus in portales_bonus.items():
+        if portal in texto:
+            score += bonus
+            break
+    
     # Bonus si el cargo específico aparece en contexto de categoría
     if cargo_lower in texto and any(x in texto for x in ['categoría', 'categoria', 'quinta', 'salario sectorial']):
         score += 35
         return score
-    
-    # Contexto de oferta laboral (Computrabajo, etc.)
-    if any(x in texto for x in ['computrabajo', 'oferta de empleo', 'vacante', 'puesto disponible']):
-        if cargo_lower in texto:
-            score += 25
-        else:
-            score += 10
     
     # Si solo menciona el cargo en contexto neutral
     if cargo_lower in texto:
@@ -301,15 +310,30 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     cargo_base = str(cargo).strip()
     area_base = str(area).strip() if area else ""
     
-    # Queries estratégicas: tabla sectorial primero
+    # Queries estratégicas: específicas a portales reales de empleo
     search_queries = [
-        f'tabla de salarios sectoriales {cargo_base} categoría quinta 2026 ecuador',
-        f'tabla sectorial salarios minimos {cargo_base} quinta',
-        f'ministerio trabajo ecuador salarios sectoriales {cargo_base}',
-        f'{cargo_base} quinta categoría sueldo ecuador',
-        f'tabla sectorial {cargo_base} ecuador',
-        f'sueldo {cargo_base} ecuador',
-        f'site:computrabajo.com.ec {cargo_base}',
+        # Computrabajo (portal más importante para Ecuador)
+        f'site:computrabajo.com.ec "{cargo_base}" sueldo',
+        f'site:computrabajo.com.ec {cargo_base} salario 2026',
+        f'site:computrabajo.com.ec {cargo_base} ecuador',
+        
+        # LinkedIn
+        f'site:linkedin.com "{cargo_base}" salario ecuador',
+        f'site:linkedin.com {cargo_base} salary ecuador',
+        
+        # Glassdoor
+        f'site:glassdoor.com {cargo_base} ecuador sueldo',
+        f'site:glassdoor.com {cargo_base} salary ecuador',
+        
+        # Multitrabajo
+        f'site:multitrabajo.com {cargo_base} ecuador',
+        
+        # Indeed
+        f'site:indeed.com {cargo_base} ecuador salario',
+        
+        # Tabla sectorial como respaldo
+        f'tabla sectorial {cargo_base} categoría quinta ecuador',
+        f'tabla de salarios sectoriales {cargo_base} 2026',
     ]
     
     headers = {
@@ -319,7 +343,7 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     todas_evidencias = []
     
     for q in search_queries:
-        if len(todas_evidencias) >= 15: break  # Recolectar más para después filtrar
+        if len(todas_evidencias) >= 20: break  # Buscar más resultados con queries específicas
         
         q_enc = urllib.parse.quote_plus(q)
         url_yahoo = f"https://search.yahoo.com/search?p={q_enc}"
