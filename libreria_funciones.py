@@ -192,91 +192,107 @@ def generar_enlaces_investigacion(cargo):
 
 def estimar_mercado_externo(cargo, mediana_interna):
     """
-    CONSULTA REAL: Realiza una búsqueda dinámica en Talent.com Ecuador
-    para obtener el salario real del mercado en tiempo real.
-    Cero datos hardcodeados en el código.
+    CONSULTA REAL MULTI-FUENTE: 
+    1. Intenta consulta directa en Talent.com (Ecuador)
+    2. Si falla, realiza búsqueda en DuckDuckGo (Snippet Scraping)
+    Cero datos hardcodeados.
     """
     cargo_str = str(cargo).strip()
     cargo_encoded = urllib.parse.quote_plus(cargo_str)
-    url_consulta = f"https://ec.talent.com/salary?job={cargo_encoded}"
     
+    # Headers realistas para evitar bloqueos
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "es-ES,es;q=0.9"
     }
     
     resultado = {
         "salario_estimado": 0.0,
         "enlaces_investigacion": generar_enlaces_investigacion(cargo_str),
         "muestras": [],
-        "confianza": "Buscando datos en tiempo real...",
-        "fuente": "Talent.com Ecuador (Consulta Dinámica)",
-        "original_url": url_consulta,
-        "mensaje": f"Realizando consulta dinámica para '{cargo_str}'...",
-        "empresa_referencia": "Mercado General Ecuador"
+        "confianza": "Consultando fuentes en vivo...",
+        "fuente": "Pendiente",
+        "original_url": "",
+        "mensaje": f"Iniciando búsqueda para '{cargo_str}'...",
+        "empresa_referencia": "Mercado Ecuador"
     }
-    
+
+    # --- FUENTE 1: Talent.com ---
+    url_talent = f"https://ec.talent.com/salary?job={cargo_encoded}"
     try:
-        # Intentar la consulta dinámica
-        response = requests.get(url_consulta, headers=headers, timeout=10)
-        
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # Intentar encontrar el monto en las clases conocidas de Talent.com
-            salary_card = soup.find('div', class_='salary-card') or soup.find('div', class_='l-card')
+        resp = requests.get(url_talent, headers=headers, timeout=8)
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            # Selector actualizado por inspección
+            val_el = soup.select_one(".l-card__salary-value") or soup.select_one(".salary-amount") or soup.select_one(".time-card__amount")
             
-            amount_text = None
-            if salary_card:
-                amount_el = (salary_card.find('div', class_='salary-amount') or 
-                             salary_card.find('div', class_='time-card__amount') or
-                             salary_card.find('span', class_='salary-amount'))
-                if amount_el:
-                    amount_text = amount_el.text.strip()
-            
-            # Si no se halló por clase, buscar por Regex en el texto plano
-            if not amount_text:
-                page_text = soup.get_text()
-                # Buscar patrón de moneda: $ 1,200 o $1.500
-                m = re.search(r'\$\s*([\d\.,]+)', page_text)
-                if m:
-                    amount_text = m.group(1)
-            
-            if amount_text:
-                # Limpiar el texto: quitar $, espacios, y manejar miles
-                # Talent.com suele usar "." para miles y "," para decimales o viceversa según el locale
-                clean_raw = re.sub(r'[^\d\.,]', '', amount_text)
+            if val_el:
+                amount_text = val_el.get_text(strip=True)
+                # Limpieza robusta
+                clean_num = re.sub(r'[^\d\.,]', '', amount_text)
+                # Normalizar: quitar puntos de miles, cambiar coma decimal a punto
+                if ',' in clean_num and '.' in clean_num:
+                    if clean_num.find('.') < clean_num.find(','): clean_num = clean_num.replace('.', '').replace(',', '.')
+                    else: clean_num = clean_num.replace(',', '')
+                else: clean_num = clean_num.replace('.', '').replace(',', '')
                 
-                # Heurística de conversión: si hay un punto y una coma, el último es el decimal
-                if '.' in clean_raw and ',' in clean_raw:
-                    if clean_raw.find('.') < clean_raw.find(','): # 1.200,50
-                        clean_num = clean_raw.replace('.', '').replace(',', '.')
-                    else: # 1,200.50
-                        clean_num = clean_raw.replace(',', '')
-                else:
-                    # Si solo hay uno, asumimos que es separador de miles si el resultado es "lógico" para un sueldo
-                    # o simplemente lo quitamos para tener el entero
-                    clean_num = clean_raw.replace('.', '').replace(',', '')
+                valor = float(clean_num)
+                if valor > 6000: valor = round(valor / 12, 2) # anual a mensual
                 
-                try:
-                    valor = float(clean_num)
-                    
-                    # Talent.com a veces muestra anual. Si es > 6000, dividimos para 12
-                    # (En Ecuador pocos cargos básicos superan los 5000/mes)
-                    if valor > 6000:
-                        valor = round(valor / 12, 2)
-                    
-                    resultado["salario_estimado"] = valor
-                    resultado["confianza"] = "Alta (Dato obtenido en vivo)"
-                    resultado["mensaje"] = f"Consulta exitosa en Talent.com. Se halló un promedio mensual de USD {valor:,.2f} para '{cargo_str}'."
-                except:
-                    pass
-        
-        if resultado["salario_estimado"] == 0:
-            resultado["confianza"] = "Consulta realizada — Sin resultado exacto"
-            resultado["mensaje"] = f"La consulta automática a Talent.com no arrojó un valor numérico claro para '{cargo_str}'. Por favor, usa los enlaces de apoyo para validar manualmente."
+                if valor > 0:
+                    resultado.update({
+                        "salario_estimado": valor,
+                        "fuente": "Talent.com Ecuador",
+                        "original_url": url_talent,
+                        "confianza": "Alta (Dato exacto)",
+                        "mensaje": f"✅ Consulta exitosa en Talent.com: USD {valor:,.2f} mensuales."
+                    })
+                    return resultado
+    except:
+        pass
+
+    # --- FUENTE 2: Fallback Búsqueda DuckDuckGo (Snippet Extract) ---
+    # Este método es casi imposible de bloquear ya que es texto plano
+    url_ddg = f"https://html.duckduckgo.com/html/?q=salario+promedio+{cargo_encoded}+ecuador"
+    try:
+        resultado["mensaje"] = "Consultando motor de búsqueda (Fallback)..."
+        resp = requests.get(url_ddg, headers=headers, timeout=8)
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            snippets = soup.select(".result__snippet")
             
-    except Exception as e:
-        resultado["confianza"] = "Error en consulta dinámica"
-        resultado["mensaje"] = f"No se pudo completar la consulta automática (Error: {str(e)}). Usa los enlaces de investigación manual."
-        
+            encontrados = []
+            for s in snippets:
+                txt = s.get_text().lower()
+                # Buscar patrones de salario en el resumen del resultado
+                # Ej: "...salario promedio de $1.200 al mes..." o "$800 - $1200"
+                matches = re.finditer(r'\$\s?([\d\.,]+)', txt)
+                for m_match in matches:
+                    num_str = m_match.group(1)
+                    num_clean = re.sub(r'[^\d]', '', num_str) 
+                    if num_clean:
+                        v = float(num_clean)
+                        if 400 < v < 15000: # Rango lógico mensual/anual Ecuador
+                            if v > 6000: v = v / 12
+                            encontrados.append(v)
+            
+            if encontrados:
+                valor_medio = sum(encontrados) / len(encontrados)
+                resultado.update({
+                    "salario_estimado": round(valor_medio, 2),
+                    "fuente": "Motores de búsqueda (Consenso)",
+                    "original_url": url_ddg,
+                    "confianza": "Media (Basado en resultados de búsqueda)",
+                    "mensaje": f"✅ Datos obtenidos vía búsqueda externa: USD {valor_medio:,.2f} mensuales."
+                })
+                return resultado
+    except:
+        pass
+
+    # Si todo falla
+    resultado["confianza"] = "Baja / Requiere Manual"
+    resultado["mensaje"] = "❌ No pudimos obtener un valor automático confiable. Usa los enlaces de abajo para validar."
     return resultado
+
 
