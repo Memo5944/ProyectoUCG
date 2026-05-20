@@ -153,6 +153,23 @@ def calcular_compa_ratio(salario_total, mediana_cargo):
 
 import statistics
 
+def _generar_url_consulta(empresa, fuente='glassdoor'):
+    """
+    Genera una URL funcional de consulta/búsqueda para la empresa en la fuente indicada.
+    Así el usuario puede ver información real al hacer clic.
+    """
+    import urllib.parse
+    empresa_limpia = str(empresa).strip()
+    empresa_encoded = urllib.parse.quote_plus(empresa_limpia)
+    
+    if fuente == 'computrabajo':
+        return f'https://www.computrabajo.com.ec/empresas/{empresa_encoded}'
+    elif fuente == 'hireline':
+        return f'https://hireline.io/ec/empresas?search={empresa_encoded}'
+    else:  # glassdoor por defecto
+        return f'https://www.glassdoor.com/Search/results.htm?keyword={empresa_encoded}&locId=2300003&locType=N&locName=Ecuador'
+
+
 def estimar_mercado_externo(cargo, mediana_interna):
     """
     Motor avanzado de estimación basado en múltiples fuentes comprobables (Ecuador).
@@ -161,74 +178,75 @@ def estimar_mercado_externo(cargo, mediana_interna):
     cargo_str = str(cargo).lower().strip()
     
     # Base de datos rígida con 5 muestras exactas por perfil
+    # Las URLs se generan dinámicamente con _generar_url_consulta para asegurar enlaces funcionales
     db_ecuador = {
         'director': {
             'muestras': [
-                {'empresa': 'Pronaca S.A.', 'salario': 5200, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Corporación Favorita', 'salario': 5500, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Holcim Ecuador', 'salario': 6000, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Banco Pichincha', 'salario': 4800, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Cervecería Nacional', 'salario': 5100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
+                {'empresa': 'Pronaca S.A.', 'salario': 5200, 'fuente': 'glassdoor'},
+                {'empresa': 'Corporación Favorita', 'salario': 5500, 'fuente': 'glassdoor'},
+                {'empresa': 'Holcim Ecuador', 'salario': 6000, 'fuente': 'glassdoor'},
+                {'empresa': 'Banco Pichincha', 'salario': 4800, 'fuente': 'glassdoor'},
+                {'empresa': 'Cervecería Nacional', 'salario': 5100, 'fuente': 'glassdoor'}
             ],
             'mensaje': 'Posición Directiva C-Level o Reporte Directo.'
         },
         'gerente': {
             'muestras': [
-                {'empresa': 'Banco Guayaquil', 'salario': 3100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'KFC (Int Food Services)', 'salario': 2900, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Tia S.A.', 'salario': 2800, 'url': 'https://www.computrabajo.com.ec/salarios'},
-                {'empresa': 'Telefónica Movistar', 'salario': 3400, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Dinadec', 'salario': 3200, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
+                {'empresa': 'Banco Guayaquil', 'salario': 3100, 'fuente': 'glassdoor'},
+                {'empresa': 'KFC (Int Food Services)', 'salario': 2900, 'fuente': 'glassdoor'},
+                {'empresa': 'Tia S.A.', 'salario': 2800, 'fuente': 'computrabajo'},
+                {'empresa': 'Telefónica Movistar', 'salario': 3400, 'fuente': 'glassdoor'},
+                {'empresa': 'Dinadec', 'salario': 3200, 'fuente': 'glassdoor'}
             ],
             'mensaje': 'Posición: Gerencia Media / Jefatura Zonal Regional.'
         },
         'jefe': {
             'muestras': [
-                {'empresa': 'Nestlé Ecuador', 'salario': 2200, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'De Prati', 'salario': 1900, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Arca Continental', 'salario': 2100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Banco del Pacífico', 'salario': 2050, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Kruger Corp', 'salario': 2300, 'url': 'https://hireline.io/ec/salarios'}
+                {'empresa': 'Nestlé Ecuador', 'salario': 2200, 'fuente': 'glassdoor'},
+                {'empresa': 'De Prati', 'salario': 1900, 'fuente': 'glassdoor'},
+                {'empresa': 'Arca Continental', 'salario': 2100, 'fuente': 'glassdoor'},
+                {'empresa': 'Banco del Pacífico', 'salario': 2050, 'fuente': 'glassdoor'},
+                {'empresa': 'Kruger Corp', 'salario': 2300, 'fuente': 'hireline'}
             ],
             'mensaje': 'Posición: Responsable de Departamento/Área Local.'
         },
         'analista financiero': {
             'muestras': [
-                {'empresa': 'Produbanco', 'salario': 1250, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Diners Club Ecuador', 'salario': 1300, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Banco Bolivariano', 'salario': 1180, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Banco Solidario', 'salario': 1150, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Mutualista Pichincha', 'salario': 1100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
+                {'empresa': 'Produbanco', 'salario': 1250, 'fuente': 'glassdoor'},
+                {'empresa': 'Diners Club Ecuador', 'salario': 1300, 'fuente': 'glassdoor'},
+                {'empresa': 'Banco Bolivariano', 'salario': 1180, 'fuente': 'glassdoor'},
+                {'empresa': 'Banco Solidario', 'salario': 1150, 'fuente': 'glassdoor'},
+                {'empresa': 'Mutualista Pichincha', 'salario': 1100, 'fuente': 'glassdoor'}
             ],
             'mensaje': 'Posición: Analista Financiero Senior.'
         },
         'analista': {
             'muestras': [
-                {'empresa': 'Supermaxi / Megamaxi', 'salario': 1050, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Claro (Conecel)', 'salario': 1150, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Netlife', 'salario': 980, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'La Fabril', 'salario': 1000, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Grupo Vilaseca', 'salario': 1100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
+                {'empresa': 'Supermaxi / Megamaxi', 'salario': 1050, 'fuente': 'glassdoor'},
+                {'empresa': 'Claro (Conecel)', 'salario': 1150, 'fuente': 'glassdoor'},
+                {'empresa': 'Netlife', 'salario': 980, 'fuente': 'glassdoor'},
+                {'empresa': 'La Fabril', 'salario': 1000, 'fuente': 'glassdoor'},
+                {'empresa': 'Grupo Vilaseca', 'salario': 1100, 'fuente': 'glassdoor'}
             ],
             'mensaje': 'Posición: Analista General (Data/Comercial).'
         },
         'desarrollador': {
             'muestras': [
-                {'empresa': 'Kushki', 'salario': 2200, 'url': 'https://hireline.io/ec/salarios'},
-                {'empresa': 'Kruger Corp', 'salario': 1800, 'url': 'https://hireline.io/ec/salarios'},
-                {'empresa': 'Cobiscorp', 'salario': 1700, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'TiendaMia.com', 'salario': 2100, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'StackBuilders', 'salario': 2300, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
+                {'empresa': 'Kushki', 'salario': 2200, 'fuente': 'hireline'},
+                {'empresa': 'Kruger Corp', 'salario': 1800, 'fuente': 'hireline'},
+                {'empresa': 'Cobiscorp', 'salario': 1700, 'fuente': 'glassdoor'},
+                {'empresa': 'TiendaMia.com', 'salario': 2100, 'fuente': 'glassdoor'},
+                {'empresa': 'StackBuilders', 'salario': 2300, 'fuente': 'glassdoor'}
             ],
             'mensaje': 'Posición: Desarrollador Backend Mid-Senior remoto y on-site.'
         },
         'operador': {
             'muestras': [
-                {'empresa': 'Holcim Operaciones', 'salario': 720, 'url': 'https://www.glassdoor.com/Reviews/index.htm'},
-                {'empresa': 'Tonicorp', 'salario': 680, 'url': 'https://www.computrabajo.com.ec/salarios'},
-                {'empresa': 'Industrias Ales', 'salario': 640, 'url': 'https://www.computrabajo.com.ec/salarios'},
-                {'empresa': 'Plásticos Global', 'salario': 600, 'url': 'https://www.computrabajo.com.ec/salarios'},
-                {'empresa': 'Novacero', 'salario': 700, 'url': 'https://www.glassdoor.com/Reviews/index.htm'}
+                {'empresa': 'Holcim Operaciones', 'salario': 720, 'fuente': 'glassdoor'},
+                {'empresa': 'Tonicorp', 'salario': 680, 'fuente': 'computrabajo'},
+                {'empresa': 'Industrias Ales', 'salario': 640, 'fuente': 'computrabajo'},
+                {'empresa': 'Plásticos Global', 'salario': 600, 'fuente': 'computrabajo'},
+                {'empresa': 'Novacero', 'salario': 700, 'fuente': 'glassdoor'}
             ],
             'mensaje': 'Posición: Operador de Máquina / Planta Industrial.'
         }
@@ -242,6 +260,17 @@ def estimar_mercado_externo(cargo, mediana_interna):
         'asistente': 550, 'auxiliar': 480
     }
     
+    def _preparar_muestras(muestras_raw):
+        """Convierte las muestras del db_ecuador a formato final con URLs funcionales."""
+        resultado = []
+        for m in muestras_raw:
+            resultado.append({
+                'empresa': m['empresa'],
+                'salario': m['salario'],
+                'url': _generar_url_consulta(m['empresa'], m.get('fuente', 'glassdoor'))
+            })
+        return resultado
+    
     match_data = None
     selected_key = None
     for key, data in db_ecuador.items():
@@ -252,15 +281,17 @@ def estimar_mercado_externo(cargo, mediana_interna):
             
     if match_data:
         # Calcular estadisticas
-        salarios = [m['salario'] for m in match_data['muestras']]
+        muestras_finales = _preparar_muestras(match_data['muestras'])
+        salarios = [m['salario'] for m in muestras_finales]
         mediana_mercado = statistics.median(salarios)
         promedio_mercado = statistics.mean(salarios)
         return {
             'salario_estimado': float(promedio_mercado), # Se pide promedio
-            'muestras': match_data['muestras'],
+            'muestras': muestras_finales,
             'confianza': 'Alta (5 Datos Auditados)',
             'fuente': 'Multi-Fuente (Links en el detalle)',
-            'mensaje': match_data['mensaje']
+            'mensaje': match_data['mensaje'],
+            'empresa_referencia': muestras_finales[0]['empresa']
         }
         
     for key, val in generic_roles.items():
@@ -275,7 +306,7 @@ def estimar_mercado_externo(cargo, mediana_interna):
                 muestras.append({
                     'empresa': empresas_gen[i],
                     'salario': var_sal,
-                    'url': f'https://www.glassdoor.com/Reviews/index.htm'
+                    'url': _generar_url_consulta(empresas_gen[i], 'glassdoor')
                 })
             salarios = [m['salario'] for m in muestras]
             return {
@@ -283,23 +314,27 @@ def estimar_mercado_externo(cargo, mediana_interna):
                 'muestras': muestras,
                 'confianza': 'Media (Estimacion Basada en Big Data)',
                 'fuente': 'Computrabajo / Glassdoor Data Model',
-                'mensaje': f'Posición: {key.title()} en el mercado general ecuatoriano.'
+                'mensaje': f'Posición: {key.title()} en el mercado general ecuatoriano.',
+                'empresa_referencia': empresas_gen[0]
             }
         
     # Fallback
     if mediana_interna and mediana_interna > 0:
         base = mediana_interna * 1.15
-        muestras = [{'empresa': 'Proyección Estadística P1', 'salario': base, 'url': '#'},
-                    {'empresa': 'Proyección Estadística P2', 'salario': base*1.05, 'url': '#'},
-                    {'empresa': 'Proyección Estadística P3', 'salario': base*0.95, 'url': '#'},
-                    {'empresa': 'Proyección Estadística P4', 'salario': base*1.10, 'url': '#'},
-                    {'empresa': 'Proyección Estadística P5', 'salario': base*0.90, 'url': '#'}]
+        muestras = [
+            {'empresa': 'Proyección Estadística P1', 'salario': base, 'url': '#'},
+            {'empresa': 'Proyección Estadística P2', 'salario': base*1.05, 'url': '#'},
+            {'empresa': 'Proyección Estadística P3', 'salario': base*0.95, 'url': '#'},
+            {'empresa': 'Proyección Estadística P4', 'salario': base*1.10, 'url': '#'},
+            {'empresa': 'Proyección Estadística P5', 'salario': base*0.90, 'url': '#'}
+        ]
         return {
             'salario_estimado': float(base),
             'muestras': muestras,
             'confianza': 'Proyección Estadística Interna',
             'fuente': 'Estimador Algoritmico',
-            'mensaje': 'ADVERTENCIA: Cargo no hallado. Calculado como Mediana Interna + 15%.'
+            'mensaje': 'ADVERTENCIA: Cargo no hallado. Calculado como Mediana Interna + 15%.',
+            'empresa_referencia': 'Estimación Interna'
         }
         
     return {
@@ -307,5 +342,6 @@ def estimar_mercado_externo(cargo, mediana_interna):
         'muestras': [],
         'confianza': 'Nula',
         'fuente': 'N/A',
-        'mensaje': 'Falta investigación.'
+        'mensaje': 'Falta investigación.',
+        'empresa_referencia': 'N/A'
     }
