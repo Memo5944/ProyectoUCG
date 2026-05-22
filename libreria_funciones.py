@@ -255,10 +255,10 @@ def _es_valor_sbu_generico(valor, titulo, snippet, cargo_base):
     return False
 
 
-def _calcular_score_evidencia(valor, titulo, snippet, cargo_base):
+def _calcular_score_evidencia(valor, titulo, snippet, cargo_base, area_base=""):
     """
     Calcula un score de confianza para cada evidencia detectada.
-    Prioriza valores en contexto de tabla sectorial, categoría, y proximidad del cargo.
+    Prioriza valores en contexto de tabla sectorial, categoría, proximidad del cargo y concordancia del área.
     """
     score = 0
     texto = (titulo + " " + snippet).lower()
@@ -302,6 +302,10 @@ def _calcular_score_evidencia(valor, titulo, snippet, cargo_base):
     # Si solo menciona el cargo en contexto neutral
     if cargo_lower in texto:
         score += 15
+        
+    # Super Bono si el área solicitada también está escrita en la oferta
+    if area_base and str(area_base).lower() in texto:
+        score += 25
     
     # Penalización: Valor genérico sin especificidad
     if _es_valor_sbu_generico(valor, titulo, snippet, cargo_base):
@@ -318,30 +322,31 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     """
     cargo_base = str(cargo).strip()
     area_base = str(area).strip() if area else ""
+    cargo_y_area = f"{cargo_base} {area_base}".strip()
     
-    # Queries estratégicas: específicas a portales reales de empleo
+    # Queries estratégicas: específicas a portales reales de empleo combinando Área y Cargo
     search_queries = [
-        # Computrabajo Ecuador y empleos locales (ampliado y suelto)
-        f'site:computrabajo.com/ofertas-de-trabajo/ "{cargo_base}" ecuador',
-        f'site:ec.computrabajo.com "{cargo_base}" sueldo',
-        f'site:ec.computrabajo.com "{cargo_base}"',
-        f'site:multitrabajo.com "{cargo_base}" ecuador',
-        f'site:porfinempleo.com "{cargo_base}" ecuador',
+        # Tiros de Precisión (Cargo + Área juntos)
+        f'site:computrabajo.com/ofertas-de-trabajo/ "{cargo_y_area}" ecuador',
+        f'site:ec.computrabajo.com "{cargo_y_area}" sueldo',
+        f'site:multitrabajo.com "{cargo_y_area}" ecuador',
+        f'site:linkedin.com/jobs "{cargo_y_area}" ecuador',
         
-        # LinkedIn (sin forzar término salario y en español)
-        f'site:linkedin.com/jobs "{cargo_base}" ecuador',
-        
-        # Indeed
-        f'site:ec.indeed.com "{cargo_base}"',
+        # Tiros Mixtos (Cargo exacto + Área suelta)
+        f'site:ec.computrabajo.com "{cargo_base}" {area_base} salario',
+        f'site:linkedin.com/jobs "{cargo_base}" {area_base} ecuador',
+        f'site:porfinempleo.com "{cargo_base}" {area_base} ecuador',
         
         # Búsqueda abierta general
-        f'"{cargo_base}" ecuador oferta empleo',
-        f'"{cargo_base}" salario mensual ecuador',
+        f'"{cargo_base}" {area_base} ecuador oferta empleo',
+        f'"{cargo_y_area}" salario mensual ecuador',
         
-        # Tablas sectoriales
+        # Tiros de Respaldo (Solamente Cargo, por si es muy restrictivo)
+        f'site:ec.computrabajo.com "{cargo_base}" sueldo',
         f'tabla sectorial {cargo_base} categoría quinta ecuador',
         
         # Glassdoor lo dejamos definitivamente al final
+        f'site:glassdoor.com "{cargo_y_area}" ecuador',
         f'site:glassdoor.com "{cargo_base}" ecuador',
     ]
     
@@ -441,7 +446,7 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                             continue
                         
                         # Calcular score de confianza
-                        score = _calcular_score_evidencia(v, title, snippet, cargo_base)
+                        score = _calcular_score_evidencia(v, title, snippet, cargo_base, area_base)
                         
                         # Rechazar si score indica valor genérico o sin contexto
                         if score < 0:
