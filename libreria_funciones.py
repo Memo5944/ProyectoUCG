@@ -199,7 +199,7 @@ def _es_portal_empleo_confiable(url):
     """
     url_lower = url.lower()
     
-    # Portales de empleo CONFIABLES
+    # Portales de empleo CONFIABLES incl. locales (Ecuador)
     portales_validos = [
         'computrabajo.com',
         'indeed.com',
@@ -220,6 +220,11 @@ def _es_portal_empleo_confiable(url):
         'workana.com',
         'toptal.com',
         'upwork.com',
+        'encuentraempleo.gob.ec',
+        'socioempleo.gob.ec',
+        'evaluar.com',
+        'porfinempleo.com',
+        'patiotuerca.com',
     ]
     
     # Verificar que la URL contenga al menos uno de los portales válidos
@@ -269,15 +274,19 @@ def _calcular_score_evidencia(valor, titulo, snippet, cargo_base):
         
         return score
     
-    # ALTO SCORE: Portales de empleo reconocidos
+    # ALTO SCORE: Portales de empleo reconocidos y locales
     portales_bonus = {
         'computrabajo': 40,
         'linkedin': 35,
         'glassdoor': 35,
         'indeed': 30,
         'multitrabajo': 30,
+        'encuentraempleo': 30,
+        'socioempleo': 30,
         'talent.com': 25,
         'jooble': 25,
+        'evaluar': 25,
+        'porfinempleo': 20,
     }
     
     for portal, bonus in portales_bonus.items():
@@ -362,6 +371,18 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                     
                     full_text = (title + " " + snippet).lower()
                     
+                    # 1. Bloqueo de calculadoras y noticias falsas
+                    if "calculadora" in full_text or "calcula tu sueldo" in full_text:
+                        continue
+                    
+                    # 2. Bloqueo Geográfico Estricto
+                    dominios_extranjeros = ['.co/', '.pe/', '.mx/', '.cl/', '.ar/', '.es/', '.do/', 'co.computrabajo', 'pe.computrabajo', 'mx.computrabajo', 'cl.computrabajo', 'ar.computrabajo', 'mx.indeed', 'co.indeed', 'pe.indeed', 'cl.indeed']
+                    if any(d in link.lower() for d in dominios_extranjeros):
+                        continue
+                        
+                    paises_excluir = ['colombia', 'perú', 'peru', 'mexico', 'méxico', 'chile', 'argentina', 'españa', 'bolivia', 'uruguay', 'paraguay']
+                    if any(p in full_text for p in paises_excluir) and 'ecuador' not in full_text and '.ec' not in link.lower():
+                        continue                    
                     # Extracción inteligente de valores con múltiples patrones
                     
                     # Patrón 1: Contexto de tabla sectorial (muy específico)
