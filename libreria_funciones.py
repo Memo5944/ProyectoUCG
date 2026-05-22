@@ -321,36 +321,46 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
     
     # Queries estratégicas: específicas a portales reales de empleo
     search_queries = [
-        # Computrabajo Ecuador usa 'ec.computrabajo.com'
-        f'site:ec.computrabajo.com "{cargo_base}" USD',
-        f'site:ec.computrabajo.com {cargo_base} dólares',
-        f'site:ec.computrabajo.com {cargo_base} salario',
-        f'computrabajo ecuador "{cargo_base}" USD', # Forma orgánica como respaldo
-        f'site:linkedin.com/jobs "{cargo_base}" ecuador salario',
-        f'site:talent.com {cargo_base} ecuador salario',
+        # Computrabajo Ecuador y empleos locales (ampliado y suelto)
+        f'site:computrabajo.com/ofertas-de-trabajo/ "{cargo_base}" ecuador',
+        f'site:ec.computrabajo.com "{cargo_base}" sueldo',
+        f'site:ec.computrabajo.com "{cargo_base}"',
+        f'site:multitrabajo.com "{cargo_base}" ecuador',
+        f'site:porfinempleo.com "{cargo_base}" ecuador',
         
-        # Búsqueda abierta inteligente
-        f'"{cargo_base}" ecuador oferta empleo USD',
+        # LinkedIn (sin forzar término salario y en español)
+        f'site:linkedin.com/jobs "{cargo_base}" ecuador',
+        
+        # Indeed
+        f'site:ec.indeed.com "{cargo_base}"',
+        
+        # Búsqueda abierta general
+        f'"{cargo_base}" ecuador oferta empleo',
         f'"{cargo_base}" salario mensual ecuador',
-        
-        # Glassdoor lo dejamos al final
-        f'site:glassdoor.com "{cargo_base}" ecuador',
         
         # Tablas sectoriales
         f'tabla sectorial {cargo_base} categoría quinta ecuador',
+        
+        # Glassdoor lo dejamos definitivamente al final
+        f'site:glassdoor.com "{cargo_base}" ecuador',
     ]
     
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-    }
+    import random
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0"
+    ]
 
     todas_evidencias = []
     
     for q in search_queries:
-        if len(todas_evidencias) >= 50: break  # Limitar recolección global antes de procesar
+        if len(todas_evidencias) >= 60: break  # Limitar recolección global
         
         q_enc = urllib.parse.quote_plus(q)
         url_yahoo = f"https://search.yahoo.com/search?p={q_enc}"
+        headers = {"User-Agent": random.choice(user_agents)}
         
         try:
             resp = requests.get(url_yahoo, headers=headers, timeout=8)
@@ -358,7 +368,7 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                 soup = BeautifulSoup(resp.text, 'html.parser')
                 results = soup.select(".algo")
                 
-                for res in results:
+                for res in results[:5]: # Máximo 5 por cada tipo de query para forzar diversidad
                     title_el = res.select_one("h3")
                     snippet_el = res.select_one(".compText")
                     link_el = res.select_one("a")
@@ -396,9 +406,9 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                     
                     # Patrón 3: Números estándar (sueldo, salario, etc.)
                     regex_patrones = [
-                        r'(?:sueldo|salario|remuneración|pagamos|usd|usd\$|\$|us\$)\s*(?:de)?\s*([\d\.,]{3,6})',
-                        r'([\d\.,]{3,6})\s*(?:usd|dólares|mensuales|mensual|\$|al mes)',
-                        r'(?:ofrecemos|oferta|ingreso)\s*(?:de)?\s*(?:\$|usd)?\s*([\d\.,]{3,6})',
+                        r'(?:sueldo|salarios?|remuneración|pagamos|usd|usd\$|\$|us\$)\D{0,15}([\d\.,]{3,8})',
+                        r'([\d\.,]{3,8})\D{0,15}(?:usd|dólares|mensuales|mensual|\$|al mes)',
+                        r'(?:ofrecemos|oferta|ingreso)\s*(?:de)?\s*(?:\$|usd)?\s*([\d\.,]{3,8})',
                     ]
                     
                     todos_matches = matches_tabla + matches_cargo_cat
@@ -407,7 +417,8 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                         
                     # Emergencia para Computrabajo
                     if len(todos_matches) == 0 and "computrabajo" in link.lower():
-                        todos_matches.extend(list(re.finditer(r'(?:\$|usd)\s*([\d\.,]{3,6})', full_text)))
+                        todos_matches.extend(list(re.finditer(r'(?:\$|usd)\s*([\d\.,]{3,8})', full_text)))
+                        todos_matches.extend(list(re.finditer(r'([\d\.,]{3,8})\s*\$', full_text)))
                     
                     for m in todos_matches:
                         raw_val = m.group(1)
