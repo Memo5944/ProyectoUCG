@@ -2,12 +2,13 @@ import pandas as pd
 
 def preparar_datos(df):
     """
-    Estandariza los nombres de columnas, verifica obligatoriedad y calcula el Salario Total.
+    Aquí recibo el archivo y estandarizo todos los nombres de sus columnas.
+    Me aseguro de que no falte ningún dato obligatorio y luego calculo el Salario Total del empleado.
     """
-    # Normalizar nombres de columnas a minúsculas
+    # Voy a normalizar todos los nombres de columnas y convertirlos a minúsculas para evitar problemas de formato
     df.columns = [str(c).strip().lower() for c in df.columns]
     
-    # Validar que existan todas las columnas requeridas estrictamente
+    # Reviso y valido que el archivo entregado cumpla estrictamente con la plantilla de columnas
     columnas_requeridas = ['codigo', 'trabajador', 'cargo', 'area', 'antigüedad', 'edad', 'salario', 'he 25%', 'he 50%', 'he 100%']
     columnas_faltantes = [col for col in columnas_requeridas if col not in df.columns]
     
@@ -74,7 +75,8 @@ def evaluar_incremento_detallado(datos_empleado, porcentaje_incremento, porcenta
     salario_total_actual = float(datos_empleado.get('salario_total', 0))
     salario_base_actual = float(datos_empleado.get('salario_base_limpio', salario_total_actual))
     
-    # Extraer horas extras evitando cualquier columna que no sea de rubros (e.g. total, salario, cargo)
+    # Identifico y extraigo específicamente las columnas de horas extras de este colaborador,
+    # descartando cualquier otra columna que no contenga un valor a pagar (como nombres, area o cargos).
     he_cols = [c for c in datos_empleado.index if ('he ' in str(c).lower() or 'hora' in str(c).lower() or 'extra' in str(c).lower())]
     he_cols = [c for c in he_cols if 'total' not in str(c).lower() and 'salario' not in str(c).lower() and 'base' not in str(c).lower() and 'cargo' not in str(c).lower() and 'area' not in str(c).lower()]
     
@@ -158,8 +160,9 @@ import re
 
 def generar_enlaces_investigacion(cargo):
     """
-    Genera enlaces de búsqueda REALES en fuentes confiables del mercado laboral
-    ecuatoriano para que el usuario investigue datos salariales verdaderos.
+    En esta función construyo y devuelvo enlaces de búsqueda REALES a portales confiables del 
+    mercado laboral ecuatoriano. Esto lo ofrezco para que puedas revisar con tus propios ojos 
+    los datos salariales si tienes alguna duda del resumen automático.
     """
     cargo_limpio = str(cargo).strip()
     cargo_encoded = urllib.parse.quote_plus(cargo_limpio)
@@ -194,12 +197,12 @@ import statistics
 
 def _es_portal_empleo_confiable(url):
     """
-    Verifica si la URL pertenece a un portal de empleo confiable.
-    Solo retorna True para sitios de contratación/empleo reales.
+    Verifico metódicamente si el enlace que mi motor encontró pertenece a un portal
+    de empleo confiable. Si veo sitios basura o dudosos, directamente rechazo esa información.
     """
     url_lower = url.lower()
     
-    # Portales de empleo CONFIABLES incl. locales (Ecuador)
+    # Esta es mi lista blanca de portales de empleo de los que sí me fío (enfocada en Ecuador).
     portales_validos = [
         'computrabajo.com',
         'indeed.com',
@@ -233,8 +236,9 @@ def _es_portal_empleo_confiable(url):
 
 def _es_valor_sbu_generico(valor, titulo, snippet, cargo_base):
     """
-    Detecta si el valor es el SBU general (482) sin contexto de categoría específica.
-    Retorna True si debe rechazarse (es genérico).
+    Aquí pongo un freno: Si veo que la cifra que extraje es exactamente el Salario Básico Unificado Histórico (460, 482, etc.)
+    y no nombra una categoría específica que avale el cargo buscado, asumo que el motor acaba de leer una simple noticia del periódico
+    o un artículo inexperto que nombra en el texto general el salario mínimo genérico. En ese caso devuelvo True indicando que esto NO es una oferta y se rechaza.
     """
     texto = (titulo + " " + snippet).lower()
     
@@ -257,8 +261,10 @@ def _es_valor_sbu_generico(valor, titulo, snippet, cargo_base):
 
 def _calcular_score_evidencia(valor, titulo, snippet, cargo_base, area_base=""):
     """
-    Calcula un score de confianza para cada evidencia detectada.
-    Prioriza valores en contexto de tabla sectorial, categoría, proximidad del cargo y concordancia del área.
+    Soy la función encargada de evaluar la credibilidad de un sueldo mediante un 'Score de Confianza'.
+    Priorizo y recompenso con la mayor cantidad de puntos a aquellos resultados que hablan de 'tablas sectoriales', 
+    o que tienen una alta correspondencia de texto tanto con el Cargo como con el Área de especialidad solicitada.
+    De este modo, nos aseguramos que las ofertas más parecidas y legales suban siempre al tope del ranking Top 10 que promediamos.
     """
     score = 0
     texto = (titulo + " " + snippet).lower()
@@ -316,17 +322,18 @@ def _calcular_score_evidencia(valor, titulo, snippet, cargo_base, area_base=""):
 
 def estimar_mercado_externo(cargo, area, mediana_interna):
     """
-    SMART HUNTER EXTERN v2.1 (Ecuador):
-    Motor inteligente que detecta automáticamente tablas sectoriales y categorías.
-    Prioriza valores en contexto de tablas oficiales sobre búsquedas generales.
+    **MI MOTOR PRINCIPAL DE BÚSQUEDA (SMART HUNTER EXTERN v2.1 Ecuador):**
+    Me encargo de rastrear la web buscando las ofertas y salarios reales que estén actualmente publicados para este cargo.
+    Me baso en portales locales, rechazo portales extranjeros, evalúo si son páginas falsas con calculadoras de impuestos, 
+    y luego traduzco los textos sucios de las descripciones web a verdaderos números salariales de nuestra economía real.
     """
     cargo_base = str(cargo).strip()
     area_base = str(area).strip() if area else ""
     cargo_y_area = f"{cargo_base} {area_base}".strip()
     
-    # Queries estratégicas: específicas a portales reales de empleo combinando Área y Cargo
+    # A continuación construyo varias tácticas o 'phrases' para buscar exhaustivamente en la web cruzando Área y Cargo
     search_queries = [
-        # Tiros de Precisión (Cargo + Área juntos)
+        # 1. Tiros de Precisión Absoluta (Si busco un 'Analista de Finanzas', forzaré a encontrar justo eso)
         f'site:computrabajo.com/ofertas-de-trabajo/ "{cargo_y_area}" ecuador',
         f'site:ec.computrabajo.com "{cargo_y_area}" sueldo',
         f'site:multitrabajo.com "{cargo_y_area}" ecuador',
@@ -386,11 +393,12 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                     
                     full_text = (title + " " + snippet).lower()
                     
-                    # 1. Bloqueo de calculadoras y noticias falsas
+                    # 1. Filtro propio: Ignoro inmediatamente las calculadoras de impuestos o simuladores fake
                     if "calculadora" in full_text or "calcula tu sueldo" in full_text:
                         continue
                     
-                    # 2. Bloqueo Geográfico Estricto
+                    # 2. Bloqueo Geográfico: Purguo de manera agresiva cualquier oferta que venga de otros países 
+                    # porque distorsionarían la moneda o el valor propio de Ecuador.
                     dominios_extranjeros = ['.co/', '.pe/', '.mx/', '.cl/', '.ar/', '.es/', '.do/', 'co.computrabajo', 'pe.computrabajo', 'mx.computrabajo', 'cl.computrabajo', 'ar.computrabajo', 'mx.indeed', 'co.indeed', 'pe.indeed', 'cl.indeed']
                     if any(d in link.lower() for d in dominios_extranjeros):
                         continue
@@ -398,7 +406,8 @@ def estimar_mercado_externo(cargo, area, mediana_interna):
                     paises_excluir = ['colombia', 'perú', 'peru', 'mexico', 'méxico', 'chile', 'argentina', 'españa', 'bolivia', 'uruguay', 'paraguay']
                     if any(p in full_text for p in paises_excluir) and 'ecuador' not in full_text and '.ec' not in link.lower():
                         continue                    
-                    # Extracción inteligente de valores con múltiples patrones
+                    
+                    # 3. Empiezo a arrancar los números de salario mediante patrones RegEx inteligentes
                     
                     # Patrón 1: Contexto de tabla sectorial (muy específico)
                     # "categoría quinta | supervisor | 559,51"
