@@ -27,4 +27,4 @@ La herramienta espera una base de datos con las siguientes columnas principales:
 - `Trabajador`: Nombre del empleado.
 - `Cargo`: Título oficial.
 - `Salario`: Monto base.
-- `Antigüedad`: Fecha de ingreso (para curvas de experiencia).
+- `Fecha de ingreso`: Día inicial de trabajo (para cálculo de antigüedad y curvas de experiencia).

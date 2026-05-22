@@ -9,7 +9,7 @@ def preparar_datos(df):
     df.columns = [str(c).strip().lower() for c in df.columns]
     
     # Reviso y valido que el archivo entregado cumpla estrictamente con la plantilla de columnas
-    columnas_requeridas = ['codigo', 'trabajador', 'cargo', 'area', 'antigüedad', 'edad', 'salario', 'he 25%', 'he 50%', 'he 100%']
+    columnas_requeridas = ['codigo', 'trabajador', 'cargo', 'area', 'fecha de ingreso', 'edad', 'salario', 'he 25%', 'he 50%', 'he 100%']
     columnas_faltantes = [col for col in columnas_requeridas if col not in df.columns]
     
     if len(columnas_faltantes) > 0:
@@ -26,22 +26,23 @@ def preparar_datos(df):
     # Calcular salario total
     df['salario_total'] = df['salario_base_limpio'] + df['total_horas_extras']
             
-    # Convertir antigüedad a años si viene como fecha (dd/mm/aaaa) o datetime
-    col_antiguedad = 'antigüedad'
-    if col_antiguedad:
-        if pd.api.types.is_datetime64_any_dtype(df[col_antiguedad]):
-            df[col_antiguedad] = (pd.Timestamp('today') - df[col_antiguedad]).dt.days / 365.25
-        elif df[col_antiguedad].dtype == 'object':
+    # A partir de la fecha de ingreso, calculo la antigüedad en años fraccionados y lo guardo 
+    # en la columna 'antigüedad' para que los gráficos y estadisticas sigan funcionando de forma transparente.
+    if 'fecha de ingreso' in df.columns:
+        if pd.api.types.is_datetime64_any_dtype(df['fecha de ingreso']):
+            df['antigüedad'] = (pd.Timestamp('today') - df['fecha de ingreso']).dt.days / 365.25
+        else:
             try:
-                fechas = pd.to_datetime(df[col_antiguedad], format='%d/%m/%Y', errors='coerce')
-                # Si alguna fecha es válida, transformar la columna entera a años desde la fecha actual
-                if not fechas.isna().all():
-                    df[col_antiguedad] = (pd.Timestamp('today') - fechas).dt.days / 365.25
+                # Detecto múltiples formatos (dd/mm/aaaa, texto excel, etc.)
+                fechas = pd.to_datetime(df['fecha de ingreso'], dayfirst=True, errors='coerce')
+                df['antigüedad'] = (pd.Timestamp('today') - fechas).dt.days / 365.25
             except Exception:
-                pass
-            
-        # Asegurar numérico en caso de que viniera texto raro o si ya se convirtió a años
-        df[col_antiguedad] = pd.to_numeric(df[col_antiguedad], errors='coerce').fillna(0)
+                df['antigüedad'] = 0
+                
+        # Aseguro que sea estrictamente numérico, evitando errores en gráficos
+        df['antigüedad'] = pd.to_numeric(df['antigüedad'], errors='coerce').fillna(0)
+    else:
+        df['antigüedad'] = 0
     
     return df
 
